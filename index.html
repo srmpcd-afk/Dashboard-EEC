@@ -687,7 +687,7 @@
 
     <div class="source-panel">
       <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>แหล่งข้อมูล</h2>
-      <p class="help">อัปโหลดไฟล์ หรือเชื่อมต่อ Google Sheet เพื่อดึงข้อมูลอัตโนมัติ</p>
+      <p class="help">เชื่อมต่อ Google Sheet ไว้ในไฟล์นี้แล้ว — เปิดหน้านี้ปุ๊บจะดึงข้อมูลอัตโนมัติทันที (หรืออัปโหลดไฟล์ / เปลี่ยนไปเชื่อมชีตอื่นเองได้ด้านล่าง)</p>
 
       <label class="upload-drop" id="uploadDrop" for="fileUpload">
         <div id="uploadDropText">📄 ลากไฟล์มาวาง หรือคลิกเพื่อเลือก<br><span style="color:var(--ink-faint)">.csv, .xlsx, .xls</span></div>
@@ -893,6 +893,15 @@
 <script>window.XLSX || document.write('\x3Cscript src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">\x3C/script>');</script>
 <script>
 const EMBEDDED_DATA = [];
+
+// ค่าเชื่อมต่อ Google Sheet ที่ฝังไว้ในไฟล์นี้โดยเฉพาะ — เปิดไฟล์ปุ๊บเชื่อมต่อและดึงข้อมูลอัตโนมัติทันที
+// โดยไม่ต้องให้ผู้ใช้วางลิงก์เอง (ใช้ได้กับ Deploy แบบ "Execute as: Me" ตามที่ตั้งค่าไว้)
+const EMBEDDED_GSHEET_CONFIG = {
+  mode: 'appsscript',
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbz4g2Qrpq7SuHnIuxa7MNeCAOJJw7HezHl_fusOkVUIqtA9vBDYpMcefThzfKujOFl5/exec',
+  tabName: '',
+  intervalMs: 30000
+};
 
 // จำแนกแต่ละแถวออกเป็น "ทะเบียนโรงงาน" (ลำดับที่ 105/106 ตาม พ.ร.บ.โรงงาน ซึ่งเป็นฐานข้อมูลผู้ประกอบกิจการ
 // ไม่ใช่การกระทำผิด) กับ "กรณีร้องเรียน/ตรวจพบการกระทำผิด" (ลักลอบทิ้งของเสีย หรือโรงงานที่ถูกร้องเรียน/ตรวจพบ)
@@ -2051,38 +2060,87 @@ function disconnectGsheet(silent){
   gsheetConfig = null;
   document.getElementById('gsheetConnectBtn').style.display = 'flex';
   document.getElementById('gsheetDisconnectBtn').style.display = 'none';
+  clearSavedGsheetConfig();
   if(!silent) setGsheetStatus('ตัดการเชื่อมต่อ Google Sheet แล้ว', 'neutral');
+}
+
+// จำการเชื่อมต่อไว้ในเบราว์เซอร์เครื่องนี้ (localStorage) เพื่อไม่ต้องวางลิงก์ใหม่ทุกครั้งที่เปิดไฟล์
+const GSHEET_STORAGE_KEY = 'eec_gsheet_config_v1';
+function saveGsheetConfig(cfg, intervalMs){
+  try{ localStorage.setItem(GSHEET_STORAGE_KEY, JSON.stringify(Object.assign({}, cfg, {intervalMs}))); }catch(e){}
+}
+function loadSavedGsheetConfig(){
+  try{
+    const raw = localStorage.getItem(GSHEET_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function clearSavedGsheetConfig(){
+  try{ localStorage.removeItem(GSHEET_STORAGE_KEY); }catch(e){}
+}
+
+async function connectGsheet(mode, params, intervalMs, isRestore){
+  document.getElementById('gsheetMode').value = mode;
+  updateGsheetModeUI();
+  document.getElementById('gsheetTab').value = params.tabName || '';
+  document.getElementById('gsheetInterval').value = String(intervalMs || 0);
+  if(mode === 'appsscript'){
+    document.getElementById('gsheetWebAppUrl').value = params.webAppUrl || '';
+    gsheetConfig = { mode, webAppUrl: params.webAppUrl, tabName: params.tabName || '' };
+  } else {
+    document.getElementById('gsheetUrl').value = params.sheetUrl || document.getElementById('gsheetUrl').value;
+    gsheetConfig = { mode, sheetId: params.sheetId, tabName: params.tabName || '' };
+  }
+  if(isRestore) setGsheetStatus('กำลังเชื่อมต่ออัตโนมัติจากการตั้งค่าที่บันทึกไว้ ...', 'loading');
+  await syncGoogleSheet(false);
+  startGsheetPolling(intervalMs);
+  document.getElementById('gsheetConnectBtn').style.display = 'none';
+  document.getElementById('gsheetDisconnectBtn').style.display = 'flex';
+  saveGsheetConfig(gsheetConfig, intervalMs);
 }
 
 document.getElementById('gsheetConnectBtn').addEventListener('click', async ()=>{
   const mode = document.getElementById('gsheetMode').value;
   const tabName = document.getElementById('gsheetTab').value.trim();
+  const intervalMs = Number(document.getElementById('gsheetInterval').value) || 0;
   if(mode === 'appsscript'){
     const webAppUrl = document.getElementById('gsheetWebAppUrl').value.trim();
     if(!webAppUrl || webAppUrl.indexOf('/exec') === -1){
       setGsheetStatus('กรุณาวาง Web App URL ที่ได้จากการ Deploy (ต้องลงท้ายด้วย /exec)', 'err');
       return;
     }
-    gsheetConfig = { mode, webAppUrl, tabName };
+    await connectGsheet('appsscript', {webAppUrl, tabName}, intervalMs, false);
   } else {
     const sheetId = extractSheetId(document.getElementById('gsheetUrl').value);
     if(!sheetId){
       setGsheetStatus('ลิงก์ Google Sheet ไม่ถูกต้อง กรุณาวางลิงก์แบบเต็ม (https://docs.google.com/spreadsheets/d/...)', 'err');
       return;
     }
-    gsheetConfig = { mode, sheetId, tabName };
+    await connectGsheet('public', {sheetId, tabName}, intervalMs, false);
   }
-  await syncGoogleSheet(false);
-  startGsheetPolling(Number(document.getElementById('gsheetInterval').value) || 0);
-  document.getElementById('gsheetConnectBtn').style.display = 'none';
-  document.getElementById('gsheetDisconnectBtn').style.display = 'flex';
 });
 
 document.getElementById('gsheetDisconnectBtn').addEventListener('click', ()=> disconnectGsheet(false));
 
 document.getElementById('gsheetInterval').addEventListener('change', ()=>{
-  if(gsheetConfig) startGsheetPolling(Number(document.getElementById('gsheetInterval').value) || 0);
+  if(gsheetConfig){
+    const intervalMs = Number(document.getElementById('gsheetInterval').value) || 0;
+    startGsheetPolling(intervalMs);
+    saveGsheetConfig(gsheetConfig, intervalMs);
+  }
 });
+
+// เชื่อมต่ออัตโนมัติทันทีที่เปิดไฟล์ — ใช้ค่าที่ผู้ใช้เคยปรับแต่งเองก่อน (ถ้ามี) ไม่งั้นใช้ค่าที่ฝังไว้ในไฟล์
+(function restoreGsheetConnection(){
+  const saved = loadSavedGsheetConfig();
+  const cfg = saved || EMBEDDED_GSHEET_CONFIG;
+  if(!cfg) return;
+  if(cfg.mode === 'appsscript' && cfg.webAppUrl){
+    connectGsheet('appsscript', {webAppUrl: cfg.webAppUrl, tabName: cfg.tabName}, cfg.intervalMs || 30000, true);
+  } else if(cfg.mode === 'public' && cfg.sheetId){
+    connectGsheet('public', {sheetId: cfg.sheetId, tabName: cfg.tabName}, cfg.intervalMs || 30000, true);
+  }
+})();
 // ========================= จบส่วนเชื่อมต่อ Google Sheet =========================
 
 // file upload wiring
