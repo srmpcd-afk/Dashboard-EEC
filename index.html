@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เฝ้าระวังของเสียอุตสาหกรรม EEC · ฉะเชิงเทรา</title>
+<title>เฝ้าระวังของเสียอุตสาหกรรม EEC · ภาคตะวันออก</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -290,18 +290,6 @@
     border:1px solid var(--line);background:var(--surface-2);
     font-family:var(--font-body);font-size:12.5px;margin-bottom:8px;
   }
-  .source-panel select{
-    width:100%;padding:9px 11px;border-radius:var(--radius-sm);
-    border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
-    font-family:var(--font-body);font-size:12.5px;margin-bottom:8px;cursor:pointer;
-  }
-  .source-panel select:focus{outline:2px solid var(--primary);outline-offset:1px;}
-  .gsheet-live-tag{
-    display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--clear);
-    background:var(--clear-soft);border:1px solid color-mix(in srgb, var(--clear) 30%, transparent);
-    padding:3px 8px;border-radius:99px;margin-bottom:8px;
-  }
-  .gsheet-live-tag .pulse{width:6px;height:6px;}
   .btn-primary, .btn-ghost{
     width:100%;padding:10px;border-radius:var(--radius-sm);
     font-family:var(--font-body);font-size:13px;cursor:pointer;margin-bottom:8px;
@@ -398,6 +386,23 @@
     box-shadow:var(--shadow-md);
   }
   #map .leaflet-popup-tip{background:var(--surface);}
+  #map .province-tooltip{
+    background:var(--surface);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:3px 9px;font-family:var(--font-display);font-weight:600;
+    font-size:12.5px;box-shadow:var(--shadow-sm);
+  }
+  #map .province-tooltip::before{border-top-color:var(--surface);}
+  #map .province-area-label{
+    background:transparent;border:none;box-shadow:none;
+    font-family:var(--font-display);font-weight:700;font-size:12.5px;
+    color:var(--ink);
+    text-shadow:
+      -1px -1px 0 var(--surface), 1px -1px 0 var(--surface),
+      -1px 1px 0 var(--surface), 1px 1px 0 var(--surface),
+      0 0 6px var(--surface);
+    white-space:nowrap;pointer-events:none;
+  }
+  #map .province-area-label::before{display:none;}
   #map .map-popup b{font-family:var(--font-display);font-size:13.5px;display:block;margin-bottom:2px;}
   #map .map-popup{font-size:12.5px;line-height:1.55;}
   .leaflet-dot{
@@ -421,6 +426,39 @@
     box-shadow:0 0 0 3px color-mix(in srgb, var(--alert) 35%, transparent), 0 1px 2px rgba(0,0,0,.35);
   }
   .leaflet-tri.incident{filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) drop-shadow(0 0 4px color-mix(in srgb, var(--alert) 60%, transparent));}
+  .leaflet-badge{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .leaflet-badge .leaflet-tri{margin-top:3px;}
+  .popup-province{
+    display:inline-flex;align-items:center;gap:5px;
+    margin:2px 0 4px;padding:1px 8px 1px 6px;
+    border:1px solid;border-radius:999px;font-size:11px;font-weight:600;
+  }
+  .popup-province .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  #provinceLegend{margin-top:0;padding-top:12px;border-top:1px dashed var(--line);}
+  #provinceLegend:empty{display:none;border:none;padding:0;}
+  .province-legend-title{
+    width:100%;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    margin-bottom:2px;font-family:var(--font-display);letter-spacing:.2px;
+  }
+  .province-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:3px 10px 3px 8px;border:1.5px solid;border-radius:999px;
+    font-size:12px;font-weight:600;
+    background:var(--surface);font-family:var(--font-body);cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .province-chip:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+  .province-chip:active{transform:translateY(0);}
+  .province-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .province-chip .cnt{
+    font-weight:700;font-size:11px;opacity:.85;
+    background:color-mix(in srgb, currentColor 16%, transparent);
+    border-radius:999px;padding:1px 6px;line-height:1.4;
+  }
   .map-card.is-fullscreen{
     position:fixed;inset:16px;z-index:1000;padding:16px;
     display:flex;flex-direction:column;box-shadow:var(--shadow-lg);
@@ -445,19 +483,21 @@
     grid-template-areas:
       "waste amphoe"
       "status license"
+      "province province"
       "factorytype factorytype";
     gap:16px;
   }
   @media (max-width:980px){
     .charts-grid{
       grid-template-columns:1fr;
-      grid-template-areas:"waste" "amphoe" "status" "license" "factorytype";
+      grid-template-areas:"waste" "amphoe" "status" "license" "province" "factorytype";
     }
   }
   .chart-waste{grid-area:waste;}
   .chart-amphoe{grid-area:amphoe;}
   .chart-status{grid-area:status;}
   .chart-license{grid-area:license;}
+  .chart-province{grid-area:province;}
   .chart-factorytype{grid-area:factorytype;}
   .chart-box{padding:18px 20px 20px;display:flex;flex-direction:column;}
   .chart-box .chead{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;}
@@ -556,7 +596,7 @@
       </span>
       <div class="brand-text">
         <strong>เฝ้าระวังของเสียอุตสาหกรรม EEC</strong>
-        <small>จังหวัดฉะเชิงเทรา</small>
+        <small>ภาคตะวันออก</small>
       </div>
     </div>
     <div class="topnav-actions">
@@ -575,21 +615,6 @@
   <div class="hero-insight" id="heroInsight" style="margin-top:14px;font-size:13px;cursor:pointer;"></div>
 </div>
 
-<div class="case-tabs" id="caseTabs">
-  <button type="button" class="case-tab tab-all is-active" data-tab="all">
-    <span class="ct-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
-    <div><div class="ct-num" id="tabNumAll">0</div><div class="ct-lbl">ทั้งหมด (ลักลอบทิ้ง + โรงงาน)</div></div>
-  </button>
-  <button type="button" class="case-tab tab-dumping" data-tab="dumping">
-    <span class="ct-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
-    <div><div class="ct-num" id="tabNumDumping">0</div><div class="ct-lbl">เฉพาะกรณีลักลอบทิ้งของเสีย</div></div>
-  </button>
-  <button type="button" class="case-tab tab-factory" data-tab="factory">
-    <span class="ct-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V10l6 4v-4l6 4V6l6 4v11H3z"/></svg></span>
-    <div><div class="ct-num" id="tabNumFactory">0</div><div class="ct-lbl">เฉพาะโรงงาน/สถานประกอบการ</div></div>
-  </button>
-</div>
-
 <div class="kpi-grid" id="statStrip"></div>
 
 <div class="layout">
@@ -597,20 +622,11 @@
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>ตัวกรองข้อมูล</h2>
 
     <div class="filter-group">
-      <label>ประเภทกรณี</label>
-      <div class="chip-row" id="chipCaseType">
-        <span class="chip active" data-type="all">ทั้งหมด</span>
-        <span class="chip" data-type="factory">โรงงาน</span>
-        <span class="chip" data-type="dumping">ลักลอบทิ้ง</span>
-      </div>
-    </div>
-
-    <div class="filter-group">
       <label>ลักษณะข้อมูล</label>
       <div class="chip-row" id="chipKind">
         <span class="chip active" data-kind="all">ทั้งหมด</span>
-        <span class="chip" data-kind="dumping">ลักลอบทิ้งของเสีย</span>
-        <span class="chip" data-kind="factory">การประกอบกิจการโรงงานอุตสาหกรรม</span>
+        <span class="chip" data-kind="incident">ลักลอบทิ้งของเสีย</span>
+        <span class="chip" data-kind="registry">การประกอบกิจการโรงงานอุตสาหกรรม</span>
       </div>
     </div>
 
@@ -621,6 +637,24 @@
         <span class="chip" data-status="clear">ไม่ดำเนินคดี</span>
         <span class="chip" data-status="progress">อยู่ระหว่างดำเนินการ</span>
         <span class="chip" data-status="alert">ดำเนินคดี</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>จังหวัด</label>
+      <div class="msel" id="mselProvince">
+        <button type="button" class="msel-trigger" id="mselProvinceTrigger">
+          <span class="msel-trigger-text">ทั้งหมด</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="msel-panel" id="mselProvincePanel" style="display:none;">
+          <input type="text" class="msel-search" id="mselProvinceSearch" placeholder="ค้นหาจังหวัด...">
+          <div class="msel-actions">
+            <button type="button" class="msel-mini" data-act="all">เลือกทั้งหมด</button>
+            <button type="button" class="msel-mini" data-act="clear">ล้าง</button>
+          </div>
+          <div class="msel-options" id="mselProvinceOptions"></div>
+        </div>
       </div>
     </div>
 
@@ -687,7 +721,31 @@
 
     <div class="source-panel">
       <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>แหล่งข้อมูล</h2>
-      <p class="help">เชื่อมต่อ Google Sheet ไว้ในไฟล์นี้แล้ว — เปิดหน้านี้ปุ๊บจะดึงข้อมูลอัตโนมัติทันที (หรืออัปโหลดไฟล์ / เปลี่ยนไปเชื่อมชีตอื่นเองได้ด้านล่าง)</p>
+      <p class="help">เชื่อมต่อ Google Sheet เพื่อดึงข้อมูลอัตโนมัติ หรืออัปโหลดไฟล์ .csv / .xlsx เอง</p>
+
+      <input type="text" id="sheetUrlInput" placeholder="วางลิงก์ Google Sheet ที่นี่...">
+      <button class="btn-primary" id="connectSheetBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        เชื่อมต่อ Google Sheet
+      </button>
+
+      <div id="sheetSyncRow" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin:-2px 0 10px;font-size:12px;color:var(--ink-soft);">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="autoRefreshToggle" checked style="width:14px;height:14px;accent-color:var(--primary);">
+          ดึงข้อมูลอัตโนมัติทุก 5 นาที
+        </label>
+        <button type="button" id="manualRefreshBtn" class="icon-btn" title="รีเฟรชตอนนี้" style="border:1px solid var(--line);background:var(--surface-2);border-radius:8px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 12a9 9 0 11-3-6.7M21 4v6h-6"/></svg>
+        </button>
+      </div>
+
+      <details class="howto">
+        <summary>วิธีเชื่อมต่อ Google Sheet</summary>
+        1) เปิดชีตของคุณ → กด "Share" → ตั้งค่าเป็น "Anyone with the link" (ดูได้) → คัดลอกลิงก์แล้ววางด้านบน<br>
+        2) หากชีตมีหลายแท็บ ให้เปิดแท็บที่ต้องการก่อนคัดลอกลิงก์ (ลิงก์จะพาไปแท็บนั้นโดยอัตโนมัติ)
+      </details>
+
+      <div class="divider-or">หรือ</div>
 
       <label class="upload-drop" id="uploadDrop" for="fileUpload">
         <div id="uploadDropText">📄 ลากไฟล์มาวาง หรือคลิกเพื่อเลือก<br><span style="color:var(--ink-faint)">.csv, .xlsx, .xls</span></div>
@@ -695,70 +753,7 @@
       </label>
 
       <button class="btn-ghost" id="resetSourceBtn">ล้างข้อมูลทั้งหมด</button>
-      <div class="source-status neutral" id="sourceStatus"><span class="msg">ยังไม่มีข้อมูล กรุณาอัปโหลดไฟล์ .csv, .xlsx หรือ .xls เพื่อเริ่มใช้งาน</span></div>
-
-      <div class="divider-or">หรือ</div>
-
-      <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:5px;">วิธีเชื่อมต่อ Google Sheet</label>
-      <select id="gsheetMode" aria-label="วิธีเชื่อมต่อ Google Sheet">
-        <option value="appsscript" selected>ผ่าน Apps Script (ชีตส่วนตัว ไม่ต้องเปิดสาธารณะ)</option>
-        <option value="public">ชีตสาธารณะ (แชร์แบบ Anyone with the link)</option>
-      </select>
-
-      <div id="gsheetModePublic" style="display:none;">
-        <input type="text" id="gsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." value="https://docs.google.com/spreadsheets/d/1b4XVGGFE7Eq3DssMNxivhYs_jrvosu4_ZrLTMCd7JPE/edit">
-      </div>
-      <div id="gsheetModeAppsScript">
-        <input type="text" id="gsheetWebAppUrl" placeholder="วาง Web App URL จาก Apps Script (ลงท้ายด้วย /exec)">
-      </div>
-      <input type="text" id="gsheetTab" placeholder="ชื่อชีต/แท็บ (เว้นว่าง = ชีตแรก)">
-      <select id="gsheetInterval" aria-label="ความถี่ในการรีเฟรช">
-        <option value="0">รีเฟรชด้วยตนเองเท่านั้น</option>
-        <option value="15000">ดึงข้อมูลอัตโนมัติทุก 15 วินาที</option>
-        <option value="30000" selected>ดึงข้อมูลอัตโนมัติทุก 30 วินาที</option>
-        <option value="60000">ดึงข้อมูลอัตโนมัติทุก 1 นาที</option>
-        <option value="300000">ดึงข้อมูลอัตโนมัติทุก 5 นาที</option>
-      </select>
-      <button class="btn-primary" id="gsheetConnectBtn">🔗 เชื่อมต่อ Google Sheet</button>
-      <button class="btn-ghost" id="gsheetDisconnectBtn" style="display:none;">⛔ ตัดการเชื่อมต่อ</button>
-      <div class="source-status neutral" id="gsheetStatus" style="display:none;"><span class="msg"></span></div>
-
-      <details class="howto" id="gsheetHowtoAppsScript">
-        <summary>วิธีตั้งค่า Apps Script (ทำครั้งเดียว)</summary>
-        <ol style="margin:8px 0 0;padding-left:18px;">
-          <li>เปิดชีตของคุณ → เมนู <strong>Extensions (ส่วนขยาย) → Apps Script</strong></li>
-          <li>ลบโค้ดเดิมในไฟล์ <code>Code.gs</code> ออกทั้งหมด แล้ววางโค้ดที่ให้ไว้ด้านล่างแทน</li>
-          <li>กด <strong>Deploy (ปรับใช้) → New deployment (การปรับใช้ใหม่)</strong></li>
-          <li>เลือกประเภท (ไอคอนเฟือง) เป็น <strong>Web app</strong></li>
-          <li>ตั้งค่า <strong>Execute as: Me</strong> (สำคัญ — สคริปต์จะอ่านชีตแทนคุณ ชีตจึงไม่ต้องเปิดสาธารณะ)</li>
-          <li><strong>Who has access:</strong> เลือก "Anyone" (คนที่มีลิงก์ Web App เท่านั้นที่ดึงข้อมูลได้ ตัวชีตจริงยังปิดอยู่เหมือนเดิม) หรือ "Anyone within [องค์กร]" ถ้าใช้ Google Workspace และอยากจำกัดเฉพาะคนในองค์กร</li>
-          <li>กด Deploy → หากมีหน้าต่างขออนุญาต (Authorize) ให้เลือกบัญชีเจ้าของชีตแล้วกดอนุญาต</li>
-          <li>คัดลอก <strong>Web app URL</strong> (ลงท้ายด้วย <code>/exec</code>) มาวางในช่องด้านบน</li>
-          <li>⚠️ ถ้าแก้โค้ดสคริปต์ทีหลัง ต้องกด Deploy → Manage deployments → แก้ไข (ไอคอนดินสอ) → เวอร์ชันใหม่ → Deploy ใหม่ทุกครั้ง ไม่งั้นระบบจะยังใช้โค้ดเวอร์ชันเก่าอยู่</li>
-        </ol>
-        <p style="margin:10px 0 4px;font-weight:600;">โค้ดสำหรับวางใน Code.gs:</p>
-        <pre style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;overflow-x:auto;white-space:pre;">function doGet(e) {
-  var tab = e.parameter.sheet;
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = tab ? ss.getSheetByName(tab) : ss.getSheets()[0];
-  if (!sheet) {
-    return ContentService.createTextOutput(JSON.stringify({error: 'ไม่พบชีต/แท็บ: ' + tab}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  var data = sheet.getDataRange().getValues();
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}</pre>
-      </details>
-      <details class="howto" id="gsheetHowtoPublic" style="display:none;">
-        <summary>ต้องตั้งค่าอะไรก่อนเชื่อมต่อ?</summary>
-        <ol style="margin:8px 0 0;padding-left:18px;">
-          <li>เปิดชีต → กด <strong>Share</strong> → ตั้ง General access เป็น <strong>"Anyone with the link" / "ทุกคนที่มีลิงก์"</strong> สิทธิ์ <strong>Viewer</strong></li>
-          <li>วางลิงก์ชีตในช่องด้านบน (ถ้ามีหลายแท็บและต้องการแท็บที่ไม่ใช่แท็บแรก ให้ใส่ชื่อแท็บด้วย)</li>
-          <li>โครงสร้างคอลัมน์ในชีตต้องตรงกับที่แดชบอร์ดนี้รองรับ (เหมือนไฟล์ที่อัปโหลดได้ตามปกติ)</li>
-          <li>กด "เชื่อมต่อ" — ระบบจะดึงข้อมูลทันที และรีเฟรชซ้ำตามความถี่ที่เลือก (ยังต้องเปิดหน้านี้ทิ้งไว้ในเบราว์เซอร์ระหว่างรอข้อมูลอัตโนมัติ)</li>
-        </ol>
-      </details>
+      <div class="source-status neutral" id="sourceStatus"><span class="msg">ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet หรืออัปโหลดไฟล์ .csv, .xlsx เพื่อเริ่มใช้งาน</span></div>
     </div>
   </aside>
 
@@ -775,12 +770,14 @@
           </svg>
         </button>
         <div id="map"></div>
+        <div class="legend" id="provinceLegend"></div>
         <div class="legend">
           <span><span class="dot" style="background:var(--clear)"></span>ไม่ดำเนินคดี</span>
           <span><span class="dot" style="background:var(--progress)"></span>อยู่ระหว่างดำเนินการ</span>
           <span><span class="dot" style="background:var(--alert)"></span>ดำเนินคดี</span>
           <span>▲ ลักลอบทิ้งของเสีย ・ ● โรงงาน</span>
           <span><span class="dot" style="background:var(--alert-soft);box-shadow:0 0 0 2px var(--alert) inset;"></span>วงแหวน = กรณีร้องเรียน/ตรวจพบ (ไม่ใช่ทะเบียนโรงงานทั่วไป)</span>
+          <span><span class="dot" style="background:var(--surface-2);outline:2px dashed var(--ink-faint);outline-offset:1px;opacity:.75;"></span>จุดจางพร้อมเส้นประ = ไม่มีพิกัดจริง หรือพิกัดไม่ตรงกับจังหวัดที่ระบุ จึงแสดงตำแหน่งโดยประมาณกลางจังหวัดแทน</span>
         </div>
       </div>
     </section>
@@ -837,6 +834,21 @@
           </div>
           <div class="chart-canvas-wrap chart-canvas-donut"><canvas id="chartLicense"></canvas></div>
         </div>
+        <div class="chart-box card chart-province">
+          <div class="chead">
+            <span class="ic" style="background:var(--primary-soft);color:var(--primary);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <div class="chead-text"><h3>จำนวนกรณีตามจังหวัด</h3><span class="chead-sub" id="provinceChartSub"></span></div>
+            <select class="topn-select" id="provinceTopN" aria-label="จำนวนอันดับที่แสดง">
+              <option value="3">Top 3</option>
+              <option value="5" selected>Top 5</option>
+              <option value="10">Top 10</option>
+              <option value="999">ทั้งหมด</option>
+            </select>
+          </div>
+          <div class="chart-canvas-wrap chart-canvas-tall"><canvas id="chartProvince"></canvas></div>
+        </div>
         <div class="chart-box card chart-factorytype">
           <div class="chead">
             <span class="ic" style="background:var(--primary-soft);color:var(--primary);">
@@ -859,7 +871,7 @@
     <section id="tableSection">
       <div class="table-card card">
         <div class="table-head">
-          <h2 style="font-family:var(--font-display);font-weight:600;font-size:17px;margin:0;">รายการกรณีทั้งหมด</h2>
+          <h2 id="tableTitle" style="font-family:var(--font-display);font-weight:600;font-size:17px;margin:0;">รายการกรณีทั้งหมด</h2>
           <input type="text" class="table-search" id="tableSearch" placeholder="ค้นหาในตาราง...">
         </div>
         <div class="table-scroll">
@@ -894,15 +906,6 @@
 <script>
 const EMBEDDED_DATA = [];
 
-// ค่าเชื่อมต่อ Google Sheet ที่ฝังไว้ในไฟล์นี้โดยเฉพาะ — เปิดไฟล์ปุ๊บเชื่อมต่อและดึงข้อมูลอัตโนมัติทันที
-// โดยไม่ต้องให้ผู้ใช้วางลิงก์เอง (ใช้ได้กับ Deploy แบบ "Execute as: Me" ตามที่ตั้งค่าไว้)
-const EMBEDDED_GSHEET_CONFIG = {
-  mode: 'appsscript',
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbz4g2Qrpq7SuHnIuxa7MNeCAOJJw7HezHl_fusOkVUIqtA9vBDYpMcefThzfKujOFl5/exec',
-  tabName: '',
-  intervalMs: 30000
-};
-
 // จำแนกแต่ละแถวออกเป็น "ทะเบียนโรงงาน" (ลำดับที่ 105/106 ตาม พ.ร.บ.โรงงาน ซึ่งเป็นฐานข้อมูลผู้ประกอบกิจการ
 // ไม่ใช่การกระทำผิด) กับ "กรณีร้องเรียน/ตรวจพบการกระทำผิด" (ลักลอบทิ้งของเสีย หรือโรงงานที่ถูกร้องเรียน/ตรวจพบ)
 // เพื่อไม่ให้กรณีจริงที่ควรเฝ้าระวังถูกกลืนหายไปในรายชื่อโรงงานที่ขึ้นทะเบียนตามปกติจำนวนมาก
@@ -915,13 +918,107 @@ function classifyRecord(r){
   else if(has105) licenseType = '105';
   else if(has106) licenseType = '106';
 
-  let recordKind = 'registry';
-  if(r.caseType === 'dumping') recordKind = 'incident';
-  else if(licenseType === 'other') recordKind = 'incident';
+  // "ร้องเรียน/ตรวจพบ" (incident) นับเฉพาะกรณีลักลอบทิ้งของเสียจริงเท่านั้น (caseType = dumping)
+  // กรณีโรงงานที่ไม่มีเลขทะเบียน 105/106 ชัดเจน ไม่ถูกนับรวมเป็น "ลักลอบทิ้ง" อีกต่อไป
+  // (ยังคงจัดเป็น registry แต่จะแยกไว้ต่างหากด้วย licenseType เพื่อให้ตรวจสอบภายหลังได้)
+  let recordKind = (r.caseType === 'dumping') ? 'incident' : 'registry';
   return {licenseType, recordKind};
 }
+// ขอบเขตจังหวัดภาคตะวันออก (7 จังหวัด) — ที่มา: @svg-maps/thailand (อิงจาก MapSVG, CC-BY-4.0) แปลงพิกัดเป็นละติจูด/ลองจิจูดโดยประมาณ ใช้แสดงเป็นพื้นที่สีต่างกันต่อจังหวัดบนแผนที่
+const PROVINCE_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name_th":"ชลบุรี","name_en":"Chon Buri"},"geometry":{"type":"MultiPolygon","coordinates":[[[[100.97423,13.35694],[100.98385,13.34911],[101.00473,13.34984],[101.02916,13.36926],[101.02901,13.38201],[101.06692,13.40317],[101.05004,13.43071],[101.03656,13.43563],[101.04041,13.44375],[101.05167,13.43824],[101.09002,13.43897],[101.10779,13.45476],[101.11549,13.44926],[101.12467,13.45375],[101.14703,13.48491],[101.24801,13.45418],[101.27822,13.43578],[101.29184,13.41056],[101.34692,13.36563],[101.36262,13.34404],[101.3912,13.33708],[101.41904,13.34071],[101.42037,13.31694],[101.43829,13.30868],[101.44806,13.29303],[101.47871,13.30172],[101.48611,13.311],[101.52224,13.29303],[101.53601,13.29477],[101.5597,13.21825],[101.57673,13.21868],[101.59524,13.18926],[101.63507,13.17926],[101.66306,13.15955],[101.68912,13.10854],[101.70896,13.09173],[101.71429,13.06724],[101.71429,13.06724],[101.70852,13.04927],[101.69282,13.03883],[101.69282,13.03883],[101.65699,13.04028],[101.64248,13.05057],[101.60235,13.02332],[101.57821,13.02535],[101.58354,13.00593],[101.5677,12.97159],[101.55289,12.9597],[101.52076,12.96086],[101.51025,12.94608],[101.49337,12.94521],[101.48063,12.92651],[101.46005,12.92014],[101.43355,12.93869],[101.41815,12.92579],[101.37654,12.9255],[101.36084,12.93231],[101.33834,12.9613],[101.32086,12.97202],[101.28932,12.95231],[101.28903,12.93811],[101.26874,12.94434],[101.25601,12.9642],[101.23661,12.95086],[101.21825,12.96347],[101.18138,12.97434],[101.17116,12.96246],[101.16998,12.94507],[101.18715,12.9426],[101.19707,12.93318],[101.18375,12.92536],[101.16213,12.9342],[101.09713,12.93304],[101.06411,12.89318],[101.08706,12.88521],[101.09061,12.86521],[101.09979,12.85942],[101.0878,12.84594],[101.08558,12.80347],[101.07373,12.79217],[101.07714,12.78507],[101.05774,12.74507],[101.06011,12.72188],[101.01036,12.67478],[101.01184,12.64739],[101.00043,12.6229],[100.98814,12.61391],[100.9914,12.60333],[100.98148,12.5816],[100.98844,12.54551],[100.98844,12.54551],[100.96416,12.53392],[100.95897,12.48479],[100.9492,12.49232],[100.94017,12.4887],[100.93128,12.4987],[100.92166,12.49537],[100.90878,12.51319],[100.9261,12.53479],[100.915,12.54725],[100.89856,12.55203],[100.88153,12.54174],[100.8457,12.53971],[100.85784,12.55652],[100.85266,12.56507],[100.83933,12.55971],[100.83652,12.56507],[100.83696,12.57319],[100.85088,12.5829],[100.83222,12.58652],[100.82956,12.62261],[100.83652,12.64159],[100.84925,12.64304],[100.85295,12.65406],[100.86598,12.65884],[100.87916,12.65029],[100.89234,12.65812],[100.90907,12.69536],[100.89175,12.7484],[100.85192,12.79797],[100.85162,12.80724],[100.85754,12.81811],[100.86495,12.81347],[100.87916,12.82768],[100.87842,12.85869],[100.899,12.86115],[100.91455,12.87521],[100.9224,12.90898],[100.90448,12.93724],[100.88671,12.93028],[100.90063,12.94391],[100.88509,12.9397],[100.87428,12.95825],[100.88183,12.96405],[100.87531,12.96854],[100.86806,12.96405],[100.86717,12.97101],[100.87442,12.99753],[100.89323,13.01144],[100.89515,13.03086],[100.92033,13.05796],[100.93143,13.08984],[100.91974,13.15376],[100.89219,13.18926],[100.89856,13.20477],[100.91322,13.20288],[100.92107,13.22839],[100.93143,13.22622],[100.97112,13.24622],[100.97911,13.28114],[100.96223,13.32245],[100.96667,13.35187],[100.97423,13.35694],[100.97423,13.35694]]]]}},{"type":"Feature","properties":{"name_th":"ระยอง","name_en":"Rayong"},"geometry":{"type":"MultiPolygon","coordinates":[[[[100.98814,12.54551],[100.98119,12.5816],[100.99111,12.60333],[100.98785,12.61391],[101.00014,12.6229],[101.01154,12.64739],[101.01006,12.67478],[101.05981,12.72188],[101.05744,12.74507],[101.07684,12.78507],[101.07343,12.79217],[101.08528,12.80347],[101.0875,12.84594],[101.0995,12.85942],[101.09031,12.86521],[101.08676,12.88521],[101.06381,12.89318],[101.09683,12.93304],[101.16183,12.9342],[101.18345,12.92536],[101.19678,12.93318],[101.18686,12.9426],[101.16968,12.94507],[101.17087,12.96246],[101.18108,12.97434],[101.21795,12.96347],[101.23631,12.95086],[101.25571,12.9642],[101.26845,12.94434],[101.28873,12.93811],[101.28903,12.95231],[101.32057,12.97202],[101.33804,12.9613],[101.36055,12.93231],[101.37624,12.9255],[101.41785,12.92579],[101.43325,12.93869],[101.45976,12.92014],[101.48034,12.92651],[101.49307,12.94521],[101.50995,12.94608],[101.52047,12.96086],[101.5526,12.9597],[101.5674,12.97159],[101.58325,13.00593],[101.57792,13.02535],[101.60205,13.02332],[101.64218,13.05057],[101.65669,13.04028],[101.69253,13.03883],[101.69253,13.03883],[101.68083,13.00318],[101.69534,12.99535],[101.68868,12.97883],[101.71148,12.92318],[101.72199,12.9168],[101.74894,12.92362],[101.75516,12.90999],[101.73443,12.87101],[101.73428,12.84637],[101.75175,12.82811],[101.77397,12.83985],[101.78537,12.83029],[101.80299,12.7742],[101.81024,12.78927],[101.82046,12.76304],[101.81705,12.75043],[101.82579,12.71203],[101.81335,12.68884],[101.81454,12.64261],[101.80699,12.63768],[101.80062,12.64391],[101.79455,12.63522],[101.79307,12.61015],[101.7793,12.59942],[101.78522,12.59015],[101.77915,12.58247],[101.77915,12.58247],[101.74331,12.5971],[101.68231,12.58232],[101.66587,12.57276],[101.6404,12.53218],[101.59139,12.54377],[101.56,12.53681],[101.5603,12.52189],[101.55067,12.51667],[101.44332,12.52015],[101.41978,12.50739],[101.41282,12.47305],[101.39757,12.49044],[101.31109,12.53261],[101.21381,12.55739],[101.15354,12.56131],[101.14629,12.56189],[101.13459,12.56218],[101.12541,12.56435],[101.12008,12.56696],[101.05937,12.56348],[100.98814,12.54551],[100.98814,12.54551]]]]}},{"type":"Feature","properties":{"name_th":"จันทบุรี","name_en":"Chanthaburi"},"geometry":{"type":"MultiPolygon","coordinates":[[[[102.36433,12.28392],[102.33516,12.25885],[102.33101,12.25682],[102.32924,12.22798],[102.30762,12.21494],[102.29799,12.19784],[102.27697,12.2116],[102.2703,12.23059],[102.27682,12.23929],[102.26409,12.23856],[102.26024,12.25928],[102.28941,12.26624],[102.27608,12.28421],[102.28008,12.29465],[102.2746,12.30131],[102.26705,12.27624],[102.24898,12.30711],[102.2592,12.33117],[102.21878,12.31349],[102.20856,12.33262],[102.20752,12.32754],[102.21211,12.31247],[102.19523,12.29595],[102.22736,12.30943],[102.2401,12.2987],[102.22455,12.27291],[102.24617,12.27349],[102.2512,12.24088],[102.26942,12.21697],[102.26749,12.20103],[102.24721,12.19798],[102.15481,12.28798],[102.12964,12.30218],[102.1212,12.30291],[102.11986,12.29523],[102.11261,12.29885],[102.11897,12.30986],[102.10061,12.33885],[102.05397,12.37146],[102.06478,12.40073],[102.09884,12.37392],[102.0978,12.38392],[102.06863,12.40522],[102.07529,12.41218],[102.0861,12.41334],[102.06197,12.42073],[102.04198,12.41986],[102.03916,12.41566],[102.05545,12.41638],[102.04805,12.37638],[102.05308,12.3603],[102.03694,12.36276],[102.03368,12.37276],[102.0365,12.38421],[102.03413,12.39117],[102.01118,12.41406],[101.97683,12.43145],[101.94247,12.4303],[101.95106,12.45189],[101.94662,12.46203],[101.95639,12.47116],[101.94336,12.48609],[101.92811,12.47884],[101.94055,12.44015],[101.93699,12.42276],[101.92204,12.4274],[101.89139,12.46029],[101.88265,12.46],[101.87747,12.47232],[101.90101,12.4658],[101.89849,12.48595],[101.8868,12.49319],[101.87673,12.49087],[101.87554,12.47841],[101.85955,12.50551],[101.856,12.53232],[101.81972,12.56189],[101.779,12.58261],[101.779,12.58261],[101.78507,12.59029],[101.77915,12.59957],[101.79292,12.61029],[101.7944,12.63536],[101.80047,12.64406],[101.80684,12.63783],[101.81439,12.64275],[101.8132,12.68898],[101.82564,12.71217],[101.81691,12.75058],[101.82031,12.76319],[101.8101,12.78942],[101.80284,12.77434],[101.78522,12.83043],[101.77382,12.84],[101.75161,12.82826],[101.73413,12.84652],[101.73428,12.87115],[101.75501,12.91014],[101.74879,12.92376],[101.72184,12.91695],[101.71133,12.92333],[101.68853,12.97898],[101.69519,12.9955],[101.68068,13.00332],[101.69238,13.03898],[101.69238,13.03898],[101.70807,13.04941],[101.71385,13.06738],[101.71385,13.06738],[101.72599,13.06521],[101.73621,13.07245],[101.74746,13.06796],[101.75353,13.07463],[101.76715,13.07057],[101.78329,13.08811],[101.81483,13.10506],[101.82268,13.12318],[101.83216,13.11999],[101.8446,13.13347],[101.86311,13.13636],[101.86829,13.10883],[101.87806,13.1226],[101.88591,13.11332],[101.89553,13.12115],[101.89228,13.14912],[101.90072,13.15781],[101.90027,13.17318],[101.92248,13.18144],[101.92337,13.17477],[101.94144,13.17912],[101.96246,13.21086],[101.98393,13.21926],[101.98393,13.21926],[102.00748,13.17564],[102.02969,13.16984],[102.02332,13.12303],[102.05175,13.12694],[102.06671,13.14173],[102.10343,13.15028],[102.11276,13.16361],[102.12445,13.22158],[102.13245,13.21796],[102.14696,13.18404],[102.18265,13.1881],[102.19805,13.14419],[102.21493,13.15028],[102.26246,13.14158],[102.28037,13.14636],[102.2897,13.17013],[102.28556,13.18578],[102.29237,13.17607],[102.3054,13.17289],[102.32746,13.20259],[102.34168,13.18419],[102.34789,13.18462],[102.34789,13.18462],[102.3439,13.16289],[102.36167,13.1481],[102.36492,13.12245],[102.38743,13.08492],[102.39321,13.0426],[102.41186,13.02332],[102.41068,13.00912],[102.42682,12.9897],[102.42933,12.97564],[102.45495,12.96695],[102.4893,12.89912],[102.52543,12.88753],[102.51122,12.87666],[102.50352,12.88086],[102.48072,12.86362],[102.49582,12.84652],[102.48057,12.83289],[102.50426,12.78058],[102.50307,12.75188],[102.49301,12.74449],[102.50989,12.72681],[102.50989,12.70956],[102.5244,12.70406],[102.52306,12.68261],[102.53091,12.67],[102.52691,12.65319],[102.51285,12.63841],[102.50411,12.63942],[102.50411,12.63942],[102.48723,12.64493],[102.46828,12.62362],[102.43511,12.62507],[102.41853,12.61116],[102.41749,12.59986],[102.39439,12.58739],[102.38728,12.56812],[102.37825,12.56696],[102.38402,12.52174],[102.39469,12.50421],[102.38121,12.4929],[102.41245,12.46856],[102.41645,12.45841],[102.39232,12.45725],[102.3741,12.47232],[102.36907,12.48551],[102.35293,12.48464],[102.34094,12.47913],[102.33279,12.45812],[102.29933,12.44363],[102.31043,12.42783],[102.31028,12.4003],[102.3242,12.3929],[102.33605,12.3703],[102.33146,12.35334],[102.31443,12.34146],[102.32435,12.33494],[102.31991,12.31696],[102.36181,12.29262],[102.36433,12.28392],[102.36433,12.28392]]]]}},{"type":"Feature","properties":{"name_th":"ตราด","name_en":"Trat"},"geometry":{"type":"MultiPolygon","coordinates":[[[[102.55979,11.62336],[102.55757,11.59713],[102.57326,11.60785],[102.58259,11.5922],[102.59325,11.59626],[102.60095,11.58582],[102.59325,11.5735],[102.60125,11.54785],[102.58955,11.52496],[102.58111,11.50814],[102.58259,11.50278],[102.59399,11.50467],[102.58614,11.49032],[102.58496,11.45887],[102.56112,11.47351],[102.55949,11.49075],[102.54069,11.48756],[102.53373,11.49901],[102.51862,11.50264],[102.52573,11.51597],[102.53787,11.52017],[102.53728,11.53481],[102.51655,11.55394],[102.52647,11.56379],[102.51981,11.59263],[102.53313,11.59959],[102.52706,11.62046],[102.53935,11.63466],[102.54069,11.65626],[102.55046,11.6535],[102.56304,11.62843],[102.55979,11.62336],[102.55979,11.62336]]],[[[102.46413,11.72973],[102.50426,11.72089],[102.49745,11.70741],[102.48101,11.70799],[102.47983,11.6851],[102.46058,11.70712],[102.44399,11.70843],[102.43985,11.70234],[102.43659,11.70712],[102.43792,11.71596],[102.4588,11.71669],[102.46413,11.72973],[102.46413,11.72973]]],[[[102.2703,12.03509],[102.31724,12.02842],[102.33353,12.01016],[102.34597,12.00625],[102.3593,11.97697],[102.37558,11.96147],[102.37884,11.94219],[102.39069,11.94219],[102.39039,11.929],[102.43926,11.87016],[102.42904,11.85944],[102.42815,11.84567],[102.37484,11.89408],[102.36255,11.88727],[102.37025,11.87567],[102.36981,11.8577],[102.355,11.85553],[102.32642,11.869],[102.30984,11.8677],[102.30377,11.86074],[102.29503,11.8735],[102.28467,11.87871],[102.29104,11.88698],[102.28082,11.90813],[102.28719,11.93596],[102.28245,11.95161],[102.26749,11.96509],[102.26631,11.99538],[102.24232,12.029],[102.26112,12.02581],[102.26172,12.03596],[102.2703,12.03509],[102.2703,12.03509]]],[[[102.36433,12.28392],[102.36167,12.29291],[102.31976,12.31725],[102.3242,12.33523],[102.31428,12.34175],[102.33131,12.35363],[102.3359,12.37059],[102.32406,12.39319],[102.31014,12.40059],[102.31028,12.42812],[102.29918,12.44392],[102.33264,12.45841],[102.34079,12.47942],[102.35278,12.48493],[102.36892,12.4858],[102.37396,12.47261],[102.39217,12.45754],[102.4163,12.4587],[102.41231,12.46884],[102.38106,12.49319],[102.39454,12.5045],[102.38388,12.52203],[102.3781,12.56725],[102.38713,12.56841],[102.39424,12.58768],[102.41734,12.60015],[102.41838,12.61145],[102.43496,12.62536],[102.46813,12.62391],[102.48708,12.64522],[102.50396,12.63971],[102.50396,12.63971],[102.49463,12.62623],[102.49848,12.60087],[102.49182,12.59203],[102.50441,12.57841],[102.49982,12.57044],[102.505,12.55739],[102.52647,12.5416],[102.57415,12.54044],[102.61146,12.50276],[102.63901,12.49884],[102.63738,12.47392],[102.65529,12.47044],[102.66018,12.45247],[102.6778,12.4374],[102.67055,12.42798],[102.6855,12.42088],[102.68817,12.40972],[102.69794,12.40783],[102.70549,12.39624],[102.72148,12.40073],[102.71275,12.37638],[102.73155,12.37305],[102.72918,12.35595],[102.73999,12.34595],[102.74414,12.35044],[102.75835,12.34537],[102.76487,12.32638],[102.77627,12.31682],[102.77716,12.29088],[102.73866,12.27972],[102.71808,12.25523],[102.71822,12.19436],[102.70579,12.15248],[102.71067,12.11726],[102.69601,12.0648],[102.72785,12.00118],[102.76324,11.9648],[102.77331,11.88306],[102.79226,11.84335],[102.80781,11.82741],[102.81151,11.78698],[102.82558,11.75075],[102.84468,11.72162],[102.85386,11.7193],[102.858,11.70176],[102.87637,11.69379],[102.87296,11.68582],[102.88436,11.68162],[102.89547,11.66452],[102.90228,11.64176],[102.90598,11.54974],[102.90139,11.54582],[102.89132,11.58263],[102.8968,11.60988],[102.88244,11.64756],[102.858,11.68915],[102.76398,11.8093],[102.77538,11.84045],[102.75702,11.87582],[102.76176,11.88509],[102.75687,11.91596],[102.71956,11.95944],[102.61872,12.03915],[102.61902,12.04886],[102.63516,12.04886],[102.63841,12.05581],[102.62627,12.07697],[102.58377,12.10349],[102.56127,12.08972],[102.54913,12.10074],[102.54942,12.09219],[102.55801,12.08552],[102.5552,12.07393],[102.5666,12.05958],[102.5472,12.05494],[102.55268,12.03538],[102.54824,12.02451],[102.55786,12.01074],[102.5509,11.98871],[102.56467,11.98103],[102.57504,11.96335],[102.58007,11.95205],[102.57504,11.93668],[102.53846,11.95234],[102.54202,11.97697],[102.52292,12.00668],[102.46931,12.0319],[102.45925,12.0432],[102.46398,12.05842],[102.39024,12.06117],[102.36004,12.08552],[102.34641,12.08451],[102.33812,12.09132],[102.31976,12.08393],[102.31724,12.07233],[102.28615,12.07958],[102.27312,12.09088],[102.26897,12.11494],[102.27875,12.1161],[102.27845,12.13074],[102.25328,12.1619],[102.25757,12.16856],[102.25061,12.18117],[102.25742,12.18407],[102.26868,12.17508],[102.31665,12.19262],[102.32213,12.20566],[102.33472,12.21016],[102.33916,12.22291],[102.35663,12.23566],[102.3402,12.25726],[102.36329,12.27595],[102.36433,12.28392],[102.36433,12.28392]]]]}},{"type":"Feature","properties":{"name_th":"ฉะเชิงเทรา","name_en":"Chachoengsao"},"geometry":{"type":"MultiPolygon","coordinates":[[[[100.91115,13.84519],[101.04145,13.862],[101.13385,13.85461],[101.13385,13.85461],[101.14851,13.83591],[101.14851,13.8162],[101.1568,13.81751],[101.14836,13.79649],[101.15132,13.78229],[101.14244,13.77809],[101.14703,13.77374],[101.15606,13.78113],[101.15769,13.77548],[101.14866,13.7649],[101.13962,13.77258],[101.13562,13.76794],[101.14096,13.75591],[101.1568,13.74794],[101.14599,13.73707],[101.17101,13.74287],[101.19737,13.76331],[101.21721,13.76157],[101.21766,13.77055],[101.24061,13.76258],[101.24594,13.75099],[101.27452,13.7636],[101.32368,13.75157],[101.33197,13.7549],[101.33878,13.74432],[101.34604,13.75476],[101.36455,13.74867],[101.3758,13.75722],[101.37787,13.73273],[101.42363,13.722],[101.43384,13.712],[101.46568,13.70809],[101.48463,13.68853],[101.52195,13.672],[101.52357,13.66142],[101.5483,13.68084],[101.55571,13.65505],[101.57037,13.64635],[101.58769,13.62085],[101.63685,13.63215],[101.66424,13.62316],[101.67787,13.64925],[101.69134,13.65447],[101.69578,13.67664],[101.72703,13.68157],[101.74361,13.69809],[101.78463,13.65461],[101.78285,13.63954],[101.79203,13.62548],[101.78581,13.622],[101.78596,13.60664],[101.79544,13.5936],[101.7947,13.5807],[101.81691,13.59114],[101.83216,13.58302],[101.83201,13.52331],[101.85852,13.51491],[101.86621,13.49128],[101.87925,13.48244],[101.88576,13.46766],[101.90619,13.47186],[101.90619,13.47186],[101.89257,13.4336],[101.85585,13.42418],[101.8677,13.41027],[101.88843,13.4052],[101.89731,13.37679],[101.9093,13.36317],[101.92811,13.36129],[101.93462,13.3481],[101.93137,13.3294],[101.96987,13.29346],[101.96661,13.27897],[101.97564,13.26593],[101.97549,13.24607],[101.98378,13.23912],[101.98393,13.21926],[101.98393,13.21926],[101.96246,13.21086],[101.94144,13.17912],[101.92352,13.17477],[101.92263,13.18158],[101.90042,13.17332],[101.90072,13.15781],[101.89242,13.14912],[101.89568,13.12115],[101.88606,13.11332],[101.87821,13.1226],[101.86844,13.10883],[101.86325,13.13636],[101.84474,13.13332],[101.83231,13.11984],[101.82283,13.12303],[101.81498,13.10492],[101.78359,13.08796],[101.76745,13.07042],[101.75383,13.07448],[101.7479,13.06767],[101.73665,13.07231],[101.72643,13.06506],[101.71429,13.06724],[101.71429,13.06724],[101.70881,13.09173],[101.68897,13.10854],[101.66306,13.15955],[101.63493,13.17926],[101.59524,13.18926],[101.57673,13.21868],[101.5597,13.2181],[101.53601,13.29477],[101.52224,13.29303],[101.48611,13.311],[101.47871,13.30172],[101.44806,13.29346],[101.43829,13.30911],[101.42022,13.31752],[101.41889,13.34114],[101.3912,13.33752],[101.36262,13.34448],[101.34692,13.36607],[101.29184,13.411],[101.27807,13.43621],[101.24786,13.45447],[101.14688,13.4852],[101.12452,13.45404],[101.11534,13.44955],[101.10764,13.45505],[101.09002,13.43926],[101.05167,13.43839],[101.04041,13.44404],[101.03656,13.43578],[101.05004,13.43085],[101.06692,13.40331],[101.02886,13.38216],[101.02916,13.3694],[101.00473,13.34998],[100.98385,13.34926],[100.97423,13.35694],[100.97423,13.35694],[100.98163,13.36824],[100.97852,13.38926],[100.96993,13.38259],[100.97334,13.36882],[100.93691,13.34911],[100.84585,13.36549],[100.84585,13.36549],[100.8494,13.38129],[100.86865,13.37665],[100.86939,13.40955],[100.88627,13.44911],[100.90167,13.44027],[100.91189,13.45607],[100.90419,13.47694],[100.92062,13.4794],[100.95661,13.51795],[100.95957,13.52882],[100.94461,13.53853],[100.95157,13.54896],[100.85769,13.58259],[100.85769,13.58259],[100.85192,13.58621],[100.90626,13.67563],[100.93454,13.69968],[100.88894,13.73592],[100.89915,13.73447],[100.903,13.7462],[100.9107,13.8307],[100.9107,13.8307],[100.91115,13.84519]]]]}},{"type":"Feature","properties":{"name_th":"ปราจีนบุรี","name_en":"Prachin Buri"},"geometry":{"type":"MultiPolygon","coordinates":[[[[101.42851,14.27547],[101.44332,14.30735],[101.43236,14.33155],[101.45576,14.34271],[101.48374,14.34807],[101.49944,14.32518],[101.52979,14.31039],[101.52979,14.31039],[101.54075,14.31894],[101.54075,14.31894],[101.58651,14.32445],[101.61701,14.31402],[101.61597,14.30141],[101.64485,14.28735],[101.64351,14.27895],[101.7368,14.1933],[101.74598,14.21025],[101.7448,14.23416],[101.75768,14.22909],[101.78403,14.24503],[101.80876,14.23373],[101.83616,14.25155],[101.83453,14.23793],[101.88458,14.2046],[101.88991,14.21576],[101.91804,14.21648],[101.94232,14.18764],[101.95521,14.20474],[101.99015,14.19895],[101.9943,14.17489],[101.97845,14.16909],[101.9669,14.14547],[101.94617,14.13895],[101.98571,14.1262],[101.96276,14.11301],[102.00333,14.08938],[102.02954,14.08228],[102.0636,14.05156],[102.1015,14.0362],[102.1015,14.0362],[102.09425,13.98866],[102.079,13.97316],[102.04227,13.96156],[102.03487,13.94939],[102.03605,13.92533],[101.94751,13.90779],[101.93048,13.8933],[101.93285,13.84446],[101.94632,13.81939],[101.93759,13.81606],[101.92056,13.82446],[101.90723,13.82026],[101.89953,13.76809],[101.92367,13.73939],[101.91567,13.71809],[101.92056,13.70055],[101.93847,13.69519],[101.94262,13.68664],[101.93729,13.6507],[101.91404,13.63882],[101.9367,13.62302],[101.93285,13.59577],[101.94321,13.55534],[101.93625,13.53563],[101.94943,13.5052],[101.9404,13.50954],[101.94158,13.49273],[101.93359,13.49375],[101.93329,13.48665],[101.90708,13.49186],[101.90619,13.47186],[101.90619,13.47186],[101.88576,13.46766],[101.87925,13.48244],[101.86621,13.49128],[101.85852,13.51491],[101.83201,13.52331],[101.83216,13.58302],[101.81691,13.59114],[101.7947,13.5807],[101.79544,13.5936],[101.78596,13.60664],[101.78581,13.622],[101.79203,13.62548],[101.78285,13.63954],[101.78463,13.65461],[101.74361,13.69809],[101.72703,13.68157],[101.69578,13.67664],[101.69134,13.65447],[101.67787,13.64925],[101.66424,13.62316],[101.63685,13.63215],[101.58769,13.62085],[101.57037,13.64635],[101.55571,13.65505],[101.5483,13.68084],[101.52357,13.66142],[101.52195,13.672],[101.48463,13.68853],[101.46568,13.70809],[101.43384,13.712],[101.42363,13.722],[101.37787,13.73273],[101.3758,13.75722],[101.36455,13.74867],[101.34604,13.75476],[101.33878,13.74432],[101.33197,13.7549],[101.32368,13.75157],[101.27452,13.7636],[101.24594,13.75099],[101.24061,13.76258],[101.21766,13.77055],[101.21721,13.76157],[101.19737,13.76331],[101.17101,13.74287],[101.14599,13.73707],[101.1568,13.74794],[101.14096,13.75591],[101.13562,13.76794],[101.13962,13.77258],[101.14866,13.7649],[101.15769,13.77548],[101.15606,13.78113],[101.14703,13.77374],[101.14244,13.77809],[101.15132,13.78229],[101.14836,13.79649],[101.1568,13.81751],[101.14851,13.8162],[101.14851,13.83591],[101.13385,13.85461],[101.13385,13.85461],[101.13888,13.85867],[101.13607,13.88649],[101.14214,13.882],[101.16124,13.88722],[101.16776,13.89635],[101.17324,13.89243],[101.19278,13.89939],[101.18997,13.90895],[101.19633,13.90939],[101.19944,13.93011],[101.21011,13.94069],[101.26178,13.94721],[101.28,13.9362],[101.30043,13.95837],[101.30769,13.95098],[101.31583,13.95591],[101.30428,13.99794],[101.28311,14.01823],[101.28518,14.03417],[101.31124,14.05866],[101.3256,14.06156],[101.34219,14.08315],[101.36928,14.09069],[101.38068,14.11359],[101.37491,14.12359],[101.37817,14.15808],[101.39164,14.15866],[101.41163,14.13822],[101.49366,14.15257],[101.50092,14.1946],[101.49278,14.20358],[101.49278,14.22011],[101.4793,14.23127],[101.47145,14.25112],[101.42851,14.27547]]]]}},{"type":"Feature","properties":{"name_th":"สระแก้ว","name_en":"Sa Kaeo"},"geometry":{"type":"MultiPolygon","coordinates":[[[[102.1015,14.0362],[102.13067,14.02257],[102.16073,14.02663],[102.16636,14.04475],[102.16206,14.0575],[102.18042,14.08141],[102.20678,14.0575],[102.20678,14.0575],[102.20634,14.03808],[102.20634,14.03808],[102.21152,14.0304],[102.24202,14.02591],[102.26231,14.03228],[102.26705,14.01446],[102.28378,14.02069],[102.30258,14.0062],[102.31961,14.0133],[102.32746,14.00591],[102.35219,14.01707],[102.35397,14.05011],[102.38003,14.0304],[102.41704,14.04301],[102.42623,14.0375],[102.42623,14.0375],[102.42623,14.0375],[102.42623,14.0375],[102.42623,14.0375],[102.42623,14.0375],[102.43096,14.02866],[102.44636,14.02866],[102.45051,14.02098],[102.46828,14.01634],[102.47746,14.02634],[102.49626,14.01707],[102.51625,14.02794],[102.54394,14.01997],[102.60169,14.05634],[102.62775,14.03417],[102.65026,14.05055],[102.67913,14.03431],[102.6892,14.01605],[102.72903,14.02649],[102.74591,14.02402],[102.74591,14.02402],[102.76117,14.02837],[102.76117,14.02837],[102.77064,14.04721],[102.77701,14.04098],[102.78604,14.0575],[102.79359,14.0446],[102.80574,14.05721],[102.82306,14.04301],[102.82484,14.0533],[102.84261,14.0433],[102.84261,14.0433],[102.86348,14.03518],[102.86348,14.03518],[102.86926,14.05823],[102.89251,14.0491],[102.92316,14.0617],[102.92316,14.0617],[102.93441,14.03286],[102.91886,14.01663],[102.91664,13.98953],[102.89473,13.96794],[102.89177,13.93635],[102.90524,13.90185],[102.88792,13.89185],[102.86067,13.88881],[102.80973,13.84997],[102.79715,13.82751],[102.77701,13.81736],[102.76191,13.7407],[102.71734,13.6778],[102.72622,13.66968],[102.72592,13.65867],[102.71097,13.65925],[102.68269,13.63664],[102.5854,13.59157],[102.56349,13.57577],[102.54542,13.54998],[102.54261,13.54331],[102.56482,13.52751],[102.57104,13.51346],[102.61842,13.4936],[102.56852,13.48853],[102.55712,13.4636],[102.52129,13.4494],[102.47465,13.45752],[102.43333,13.44476],[102.41571,13.45621],[102.38758,13.45201],[102.36137,13.46317],[102.35367,13.44969],[102.33457,13.44433],[102.32865,13.42244],[102.35352,13.39708],[102.35737,13.37534],[102.34982,13.34636],[102.35559,13.29085],[102.33975,13.23303],[102.35426,13.1997],[102.34804,13.18477],[102.34804,13.18477],[102.34168,13.18448],[102.32746,13.20274],[102.3054,13.17303],[102.29237,13.17636],[102.2857,13.18607],[102.28985,13.17042],[102.28052,13.14651],[102.26246,13.14173],[102.21507,13.15042],[102.19819,13.14434],[102.18265,13.18825],[102.14696,13.18433],[102.1323,13.2181],[102.12431,13.22172],[102.11261,13.16376],[102.10343,13.15042],[102.06671,13.14187],[102.05175,13.12709],[102.02332,13.12303],[102.02969,13.16984],[102.00748,13.17578],[101.98393,13.21926],[101.98393,13.21926],[101.98378,13.23912],[101.97549,13.24607],[101.97564,13.26593],[101.96661,13.27897],[101.96987,13.29346],[101.93137,13.3294],[101.93462,13.3481],[101.92811,13.36129],[101.9093,13.36317],[101.89731,13.37679],[101.88843,13.4052],[101.8677,13.41027],[101.85585,13.42418],[101.89257,13.4336],[101.90619,13.47186],[101.90619,13.47186],[101.90708,13.49186],[101.93329,13.48665],[101.93359,13.49375],[101.94158,13.49273],[101.9404,13.50954],[101.94943,13.5052],[101.93625,13.53563],[101.94321,13.55534],[101.93285,13.59577],[101.9367,13.62302],[101.91404,13.63882],[101.93729,13.6507],[101.94262,13.68664],[101.93847,13.69519],[101.92056,13.70055],[101.91567,13.71809],[101.92367,13.73939],[101.89953,13.76809],[101.90723,13.82026],[101.92056,13.82446],[101.93759,13.81606],[101.94632,13.81939],[101.93285,13.84446],[101.93048,13.8933],[101.94751,13.90779],[102.03605,13.92533],[102.03487,13.94939],[102.04227,13.96156],[102.079,13.97316],[102.09425,13.98866],[102.1015,14.0362]]]]}}]};
 function enrichRecords(records){
   return (records||[]).map(r => Object.assign({}, r, classifyRecord(r)));
+}
+
+// ---------- จุดศูนย์กลาง (centroid) ของแต่ละจังหวัด สำหรับ fallback ตำแหน่งบนแผนที่ ----------
+// คำนวณจาก "รูปหลายเหลี่ยมที่มีพื้นที่มากที่สุด" ของแต่ละจังหวัดใน PROVINCE_GEOJSON (กันกรณีจังหวัดที่มีเกาะแยก เช่น ตราด)
+function ringArea(ring){
+  let a = 0;
+  for(let i=0;i<ring.length-1;i++){
+    const [x1,y1]=ring[i], [x2,y2]=ring[i+1];
+    a += x1*y2 - x2*y1;
+  }
+  return a/2;
+}
+function ringCentroid(ring){
+  let x=0,y=0,area=0;
+  for(let i=0;i<ring.length-1;i++){
+    const [x1,y1]=ring[i], [x2,y2]=ring[i+1];
+    const cross = x1*y2 - x2*y1;
+    area += cross; x += (x1+x2)*cross; y += (y1+y2)*cross;
+  }
+  area/=2;
+  if(!area) return ring[0];
+  return [x/(6*area), y/(6*area)]; // [lng,lat]
+}
+const PROVINCE_CENTROIDS = (function(){
+  const out = {};
+  PROVINCE_GEOJSON.features.forEach(f=>{
+    let bestRing=null, bestArea=-Infinity;
+    f.geometry.coordinates.forEach(poly=>{
+      const ring = poly[0];
+      const a = Math.abs(ringArea(ring));
+      if(a>bestArea){ bestArea=a; bestRing=ring; }
+    });
+    const [lng,lat] = ringCentroid(bestRing);
+    out[f.properties.name_th] = {lat, lng};
+  });
+  return out;
+})();
+// จุดสุ่มเล็กน้อยรอบศูนย์กลางจังหวัด (รัศมีประมาณ 0.05 องศา ~ 5 กม.) กันไม่ให้กรณีที่ไม่มีพิกัดซ้อนทับกันเป๊ะๆ บนแผนที่
+function jitterAroundCentroid(c){
+  const r = 0.05;
+  const ang = Math.random()*Math.PI*2;
+  const rad = Math.sqrt(Math.random())*r;
+  return { lat: c.lat + rad*Math.sin(ang), lng: c.lng + rad*Math.cos(ang) };
+}
+
+// ---------- ตรวจว่าพิกัดที่รายงานมา อยู่ในเขตของ "จังหวัด" ที่ระบุไว้ในแถวข้อมูลจริงหรือไม่ ----------
+// (point-in-polygon แบบ ray casting) ใช้กันกรณีพิกัดผิด/สลับ lat-lng/พิกัดหลุดจังหวัด
+function pointInRing(lng, lat, ring){
+  let inside = false;
+  for(let i=0, j=ring.length-1; i<ring.length; j=i++){
+    const xi=ring[i][0], yi=ring[i][1];
+    const xj=ring[j][0], yj=ring[j][1];
+    const intersect = ((yi>lat) !== (yj>lat)) && (lng < (xj-xi)*(lat-yi)/(yj-yi) + xi);
+    if(intersect) inside = !inside;
+  }
+  return inside;
+}
+function pointInPolygon(lng, lat, polygon){ // polygon: [outerRing, ...holes]
+  if(!pointInRing(lng, lat, polygon[0])) return false;
+  for(let h=1; h<polygon.length; h++){ if(pointInRing(lng, lat, polygon[h])) return false; }
+  return true;
+}
+function pointInMultiPolygon(lng, lat, multiCoords){ // multiCoords: array of polygons
+  return multiCoords.some(poly => pointInPolygon(lng, lat, poly));
+}
+const PROVINCE_POLYGONS = (function(){
+  const out = {};
+  PROVINCE_GEOJSON.features.forEach(f=>{ out[f.properties.name_th] = f.geometry.coordinates; });
+  return out;
+})();
+
+// เติม/แก้พิกัดให้ตรงกับ "จังหวัด" ที่ระบุไว้ในไฟล์ข้อมูลเป็นหลัก โดยไม่สนละติจูด/ลองจิจูดถ้ามันขัดกับจังหวัด:
+//  - แถวที่ไม่มีพิกัดเลย แต่มีชื่อจังหวัด -> ใช้จุดใกล้ศูนย์กลางจังหวัดนั้นแทน
+//  - แถวที่มีพิกัด แต่พิกัดนั้นตกอยู่นอกเขตจังหวัดที่ระบุไว้ (ข้อมูลพิกัดผิด/สลับกัน) -> ทิ้งพิกัดเดิม ใช้ตำแหน่งกลางจังหวัดแทนเช่นกัน
+// (ตั้งค่า approxLocation:true ไว้ทุกครั้งที่ใช้ตำแหน่งประมาณ เพื่อให้ส่วนอื่นๆ แสดงผลต่างจากพิกัดจริงได้)
+function fillFallbackCoords(records){
+  return records.map(r=>{
+    const p = String(r.province||'').trim();
+    const centroid = PROVINCE_CENTROIDS[p];
+    const polygon = PROVINCE_POLYGONS[p];
+    const hasCoords = r.lat!=null && r.lng!=null;
+
+    if(hasCoords && polygon && !pointInMultiPolygon(r.lng, r.lat, polygon)){
+      const j = jitterAroundCentroid(centroid);
+      return Object.assign({}, r, {lat:j.lat, lng:j.lng, approxLocation:true});
+    }
+    if(hasCoords) return r;
+    if(!centroid) return r;
+    const j = jitterAroundCentroid(centroid);
+    return Object.assign({}, r, {lat:j.lat, lng:j.lng, approxLocation:true});
+  });
 }
 const KIND_LABEL = {registry:'ขึ้นทะเบียน (105/106)', incident:'ร้องเรียน/ตรวจพบ'};
 const LICENSE_LABEL = {'105':'ลำดับที่ 105', '106':'ลำดับที่ 106', '105_106':'ลำดับที่ 105 และ 106', other:'อื่นๆ / กรณีพิเศษ'};
@@ -932,9 +1029,43 @@ const FACTORY_TYPE_DESC = {
   'ลำดับที่ 106': 'นำผลิตภัณฑ์/ของเสียอุตสาหกรรมที่ไม่ใช้แล้วมาผลิตเป็นวัตถุดิบหรือผลิตภัณฑ์ใหม่ (รีไซเคิล)'
 };
 
-let RAW = enrichRecords(EMBEDDED_DATA.slice());
+let RAW = fillFallbackCoords(enrichRecords(EMBEDDED_DATA.slice()));
 let filtered = [];
 let charts = {};
+
+// สีประจำจังหวัด — แต่ละจังหวัดมีสีของตัวเองบนแผนที่ ไม่ขึ้นกับสถานะคดี
+const PROVINCE_COLORS = {
+  'ชลบุรี':      '#2F6FED',
+  'ระยอง':       '#E8A23A',
+  'ฉะเชิงเทรา':   '#28A99E',
+  'ปราจีนบุรี':   '#A25BC9',
+  'สระแก้ว':     '#C9548E',
+  'จันทบุรี':     '#D4AC0D',
+  'ตราด':        '#4C9F4C'
+};
+const PROVINCE_FALLBACK_PALETTE = ['#7A8C3B','#3A7BC9','#C97A3A','#5E4B8B','#1F7A5C','#B84A66'];
+const provinceColorCache = {};
+let provinceFallbackIdx = 0;
+function provinceColor(name){
+  const p = String(name||'').trim();
+  if(!p) return '#9AA3AF';
+  if(PROVINCE_COLORS[p]) return PROVINCE_COLORS[p];
+  if(provinceColorCache[p]) return provinceColorCache[p];
+  const c = PROVINCE_FALLBACK_PALETTE[provinceFallbackIdx % PROVINCE_FALLBACK_PALETTE.length];
+  provinceFallbackIdx++;
+  provinceColorCache[p] = c;
+  return c;
+}
+// รายชื่อจังหวัดที่พบจริงในข้อมูลปัจจุบัน (เรียงตามลำดับที่พบก่อน) ใช้ทำ legend บนแผนที่
+function provincesInData(rows){
+  const seen = [];
+  const set = new Set();
+  rows.forEach(r=>{
+    const p = String(r.province||'').trim();
+    if(p && !set.has(p)){ set.add(p); seen.push(p); }
+  });
+  return seen;
+}
 
 const STATUS_BUCKET = (s) => {
   if(!s) return 'clear';
@@ -1178,11 +1309,14 @@ function rowsToRecords(rows){
   }
   if(!newData.length) throw new Error('แปลงข้อมูลไม่สำเร็จ ไม่พบแถวข้อมูล');
   const withCoords0 = newData.filter(r => r.lat!=null && r.lng!=null).length;
-  if(withCoords0 === 0){
-    throw new Error('อ่านข้อมูลได้ '+newData.length+' แถว แต่ไม่พบพิกัด (ละติจูด/ลองจิจูด) ที่ใช้งานได้เลย กรุณาตรวจสอบคอลัมน์พิกัดในไฟล์');
+  // แถวที่ไม่มีพิกัดจริง แต่มีชื่อจังหวัด จะยังขึ้นแผนที่ได้แบบตำแหน่งโดยประมาณ (ดู fillFallbackCoords)
+  const withProvinceOnly0 = newData.filter(r => (r.lat==null || r.lng==null) && String(r.province||'').trim()).length;
+  if(withCoords0 === 0 && withProvinceOnly0 === 0){
+    throw new Error('อ่านข้อมูลได้ '+newData.length+' แถว แต่ไม่พบทั้งพิกัด (ละติจูด/ลองจิจูด) และชื่อจังหวัดที่ใช้งานได้เลย กรุณาตรวจสอบคอลัมน์พิกัด/จังหวัดในไฟล์');
   }
   const cleanedData = cleanRecords(newData);
   cleanedData.__withCoords = withCoords0;
+  cleanedData.__withProvinceOnly = withProvinceOnly0;
   return cleanedData;
 }
 
@@ -1206,11 +1340,16 @@ function setIndicator(text, on){
 }
 
 function applyNewData(newData, sourceLabel){
-  const withCoords = newData.__withCoords;
-  RAW = enrichRecords(newData);
+  RAW = fillFallbackCoords(enrichRecords(newData));
+  const approxCount = RAW.filter(r=>r.approxLocation).length;
+  const realCount = RAW.filter(r=>r.lat!=null && r.lng!=null && !r.approxLocation).length;
+  const unlocatedCount = RAW.filter(r=>r.lat==null || r.lng==null).length;
   let msg = 'โหลดสำเร็จ · ' + newData.length + ' รายการ';
-  if(withCoords != null && withCoords < newData.length){
-    msg += ' (มีพิกัดขึ้นแผนที่ได้ '+withCoords+' รายการ, ขาดพิกัด '+(newData.length-withCoords)+' รายการ)';
+  if(approxCount > 0 || unlocatedCount > 0){
+    msg += ' (มีพิกัดจริงตรงกับจังหวัด '+realCount+' รายการ';
+    if(approxCount > 0) msg += ', ไม่มีพิกัด/พิกัดไม่ตรงจังหวัด ใช้ตำแหน่งประมาณกลางจังหวัดแทน '+approxCount+' รายการ';
+    if(unlocatedCount > 0) msg += ', ไม่พบทั้งพิกัดและจังหวัดที่รู้จัก '+unlocatedCount+' รายการ';
+    msg += ')';
   }
   const cs = newData.__cleanStats;
   if(cs && (cs.wasteGrouped || cs.dateCleared)){
@@ -1278,15 +1417,89 @@ function handleUploadedFile(file){
   }
 }
 
+// ---------- เชื่อมต่อ Google Sheet อัตโนมัติ ----------
+const SHEET_URL_KEY = 'eec_sheet_url';
+const SHEET_AUTOREFRESH_KEY = 'eec_sheet_autorefresh';
+const SHEET_REFRESH_MS = 5 * 60 * 1000;
+let sheetRefreshTimer = null;
+
+function extractSheetIdAndGid(url){
+  const idMatch = String(url||'').match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if(!idMatch) return null;
+  const gidMatch = String(url).match(/[?#&]gid=([0-9]+)/);
+  return {id: idMatch[1], gid: gidMatch ? gidMatch[1] : '0'};
+}
+
+function buildSheetCsvUrl(id, gid){
+  // ใช้ endpoint gviz/tq แทน /export?format=csv เพราะรองรับ CORS ให้ดึงข้อมูลจาก JavaScript
+  // ฝั่งไคลเอนต์ได้โดยตรง (ชีตต้องตั้งค่าแชร์เป็น "Anyone with the link" ดูได้)
+  return 'https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:csv&gid='+gid;
+}
+
+function connectGoogleSheet(rawUrl, opts){
+  opts = opts || {};
+  const silent = !!opts.silent;
+  const url = String(rawUrl||'').trim();
+  if(!url){
+    if(!silent) setStatus('กรุณาวางลิงก์ Google Sheet ก่อน', 'err');
+    return Promise.resolve(false);
+  }
+  const parsed = extractSheetIdAndGid(url);
+  if(!parsed){
+    setStatus('ลิงก์ Google Sheet ไม่ถูกต้อง กรุณาคัดลอกลิงก์จากแถบที่อยู่เบราว์เซอร์ของ Google Sheets', 'err');
+    return Promise.resolve(false);
+  }
+  const csvUrl = buildSheetCsvUrl(parsed.id, parsed.gid);
+  if(!silent) setStatus('กำลังเชื่อมต่อ Google Sheet ...', 'loading');
+  return fetch(csvUrl, {cache:'no-store'})
+    .then(res => {
+      if(!res.ok){
+        if(res.status === 401 || res.status === 403){
+          throw new Error('เข้าถึงชีตไม่ได้ กรุณากด Share แล้วตั้งค่าเป็น "Anyone with the link" (ดูได้)');
+        }
+        throw new Error('เชื่อมต่อไม่สำเร็จ (HTTP '+res.status+')');
+      }
+      return res.text();
+    })
+    .then(text => {
+      if(!text || !text.trim()) throw new Error('ไม่พบข้อมูลในชีตนี้');
+      if(typeof Papa === 'undefined') throw new Error('ไลบรารีอ่าน CSV โหลดไม่สำเร็จ กรุณารีเฟรชหน้านี้แล้วลองใหม่');
+      const parsedCsv = Papa.parse(text.trim(), {skipEmptyLines:true});
+      if(parsedCsv.errors && parsedCsv.errors.length){
+        throw new Error('รูปแบบข้อมูลจาก Google Sheet ไม่ถูกต้อง: '+parsedCsv.errors[0].message);
+      }
+      const newData = rowsToRecords(parsedCsv.data);
+      applyNewData(newData, 'Google Sheet (เชื่อมต่ออัตโนมัติ)');
+      try{ localStorage.setItem(SHEET_URL_KEY, url); }catch(e){}
+      document.getElementById('sheetSyncRow').style.display = 'flex';
+      return true;
+    })
+    .catch(err => {
+      setStatus('เชื่อมต่อ Google Sheet ไม่สำเร็จ: '+err.message, 'err');
+      return false;
+    });
+}
+
+function startSheetAutoRefresh(){
+  stopSheetAutoRefresh();
+  sheetRefreshTimer = setInterval(()=>{
+    const url = document.getElementById('sheetUrlInput').value;
+    if(url) connectGoogleSheet(url, {silent:true});
+  }, SHEET_REFRESH_MS);
+}
+function stopSheetAutoRefresh(){
+  if(sheetRefreshTimer){ clearInterval(sheetRefreshTimer); sheetRefreshTimer = null; }
+}
+
 function uniqueSorted(arr){
   return Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>a.localeCompare(b,'th'));
 }
 
 // ---------- ตัวกรองแบบเลือกได้หลายค่า (chips) ----------
 // อาร์เรย์ว่าง = "ทั้งหมด" (ไม่กรอง) ; มีค่า = กรองแบบ OR ภายในกลุ่มเดียวกัน
+// ค่าเริ่มต้น: แสดงกรณีทั้งหมด (ลักลอบทิ้ง + โรงงาน) — ผู้ใช้สามารถคลิกแท็บด้านบนเพื่อกรองเองได้
 let activeCaseTypes = [];
 let activeKinds = [];
-let activeRecordKinds = []; // ใช้เฉพาะการคลิกจากการ์ด KPI/ข้อความสรุป (ลักษณะ: ร้องเรียน/ตรวจพบ vs ขึ้นทะเบียน) แยกจากตัวกรอง "ลักษณะข้อมูล" ที่กรองตาม caseType
 let activeStatuses = [];
 
 function renderChipGroup(containerId, valueAttr, arrRef){
@@ -1307,7 +1520,8 @@ function toggleChipGroup(containerId, valueAttr, arrRef, chip){
   renderChipGroup(containerId, valueAttr, arrRef);
 }
 
-// ---------- ตัวกรองอำเภอ/ตำบล/หน่วยงาน: searchable multi-select ----------
+// ---------- ตัวกรองจังหวัด/อำเภอ/ตำบล/หน่วยงาน: searchable multi-select ----------
+let selectedProvinces = new Set();
 let selectedAmphoes = new Set();
 let selectedTambons = new Set();
 let selectedAgencies = new Set();
@@ -1380,6 +1594,10 @@ function createMultiSelect(ids, selectedSet, emptyLabel, onChange){
   };
 }
 
+const provinceMsel = createMultiSelect(
+  {msel:'mselProvince', trigger:'mselProvinceTrigger', panel:'mselProvincePanel', search:'mselProvinceSearch', options:'mselProvinceOptions'},
+  selectedProvinces, 'ทั้งหมด', ()=>{ updateAmphoeOptions(); applyFilters(); }
+);
 const amphoeMsel = createMultiSelect(
   {msel:'mselAmphoe', trigger:'mselAmphoeTrigger', panel:'mselAmphoePanel', search:'mselAmphoeSearch', options:'mselAmphoeOptions'},
   selectedAmphoes, 'ทั้งหมด', ()=>{ updateTambonOptions(); applyFilters(); }
@@ -1394,18 +1612,28 @@ const agencyMsel = createMultiSelect(
 );
 
 function rebuildFilterOptions(){
-  const amphoeCounts = tally(RAW.map(r=>r.amphoe).filter(Boolean));
-  const amphoeItems = uniqueSorted(Object.keys(amphoeCounts)).map(a=>({value:a, label:a, count:amphoeCounts[a]}));
-  amphoeMsel.setItems(amphoeItems);
-  updateTambonOptions();
+  const provinceCounts = tally(RAW.map(r=>r.province).filter(Boolean));
+  const provinceItems = uniqueSorted(Object.keys(provinceCounts)).map(p=>({value:p, label:p, count:provinceCounts[p]}));
+  provinceMsel.setItems(provinceItems);
+  updateAmphoeOptions();
 
   const agencyCounts = tally(RAW.map(r=>r.agency).filter(Boolean));
   const agencyItems = uniqueSorted(Object.keys(agencyCounts)).map(a=>({value:a, label:a, count:agencyCounts[a]}));
   agencyMsel.setItems(agencyItems);
 }
 
+// อำเภอจะกรองตามจังหวัดที่เลือกไว้ก่อน (ถ้ามี) แล้วจึงไล่ต่อไปยังตำบล
+function updateAmphoeOptions(){
+  const pool = selectedProvinces.size ? RAW.filter(r=>selectedProvinces.has(r.province)) : RAW;
+  const amphoeCounts = tally(pool.map(r=>r.amphoe).filter(Boolean));
+  const amphoeItems = uniqueSorted(Object.keys(amphoeCounts)).map(a=>({value:a, label:a, count:amphoeCounts[a]}));
+  amphoeMsel.setItems(amphoeItems);
+  updateTambonOptions();
+}
+
 function updateTambonOptions(){
-  const pool = selectedAmphoes.size ? RAW.filter(r=>selectedAmphoes.has(r.amphoe)) : RAW;
+  let pool = selectedProvinces.size ? RAW.filter(r=>selectedProvinces.has(r.province)) : RAW;
+  pool = selectedAmphoes.size ? pool.filter(r=>selectedAmphoes.has(r.amphoe)) : pool;
   const tambonCounts = tally(pool.map(r=>r.tambon).filter(Boolean));
   const tambonItems = uniqueSorted(Object.keys(tambonCounts)).map(t=>({value:t, label:t, count:tambonCounts[t]}));
   tambonMsel.setItems(tambonItems);
@@ -1414,7 +1642,7 @@ function updateTambonOptions(){
 // ค้นหาแบบ "ทั่วทุกฟิลด์": ครอบคลุมชื่อกรณี พื้นที่ ประเภทของเสีย การดำเนินงาน สถานะ
 // รายละเอียดทางกฎหมาย หน่วยงาน หมายเหตุ และลำดับที่โรงงาน เพื่อไม่ให้พลาดข้อมูลที่ซ่อนอยู่ในฟิลด์ที่ไม่ได้แสดงในตาราง
 function searchHaystack(r){
-  return [r.caseName, r.amphoe, r.tambon, r.moo, r.wasteType, r.operation, r.status,
+  return [r.caseName, r.province, r.amphoe, r.tambon, r.moo, r.wasteType, r.operation, r.status,
     r.legalDetail, r.agency, r.note, r.locationType].join(' ').toLowerCase();
 }
 
@@ -1424,9 +1652,9 @@ function applyFilters(){
 
   filtered = RAW.filter(r=>{
     if(activeCaseTypes.length && !activeCaseTypes.includes(r.caseType)) return false;
-    if(activeKinds.length && !activeKinds.includes(r.caseType)) return false;
-    if(activeRecordKinds.length && !activeRecordKinds.includes(r.recordKind)) return false;
+    if(activeKinds.length && !activeKinds.includes(r.recordKind)) return false;
     if(activeStatuses.length && !activeStatuses.includes(STATUS_BUCKET(r.status))) return false;
+    if(selectedProvinces.size && !selectedProvinces.has(r.province)) return false;
     if(selectedAmphoes.size && !selectedAmphoes.has(r.amphoe)) return false;
     if(selectedTambons.size && !selectedTambons.has(r.tambon)) return false;
     if(selectedAgencies.size && !selectedAgencies.has(r.agency)) return false;
@@ -1450,14 +1678,14 @@ const ICONS = {
 };
 
 // นับจำนวนแยกตาม "ประเภทกรณี" โดยไม่รวมตัวกรองประเภทกรณีเอง (เพื่อให้แท็บโชว์จำนวนที่ถูกต้องเสมอ)
-// แต่ยังเคารพตัวกรองอื่นๆ ที่ผู้ใช้เลือกไว้ (สถานะ/อำเภอ/ตำบล/หน่วยงาน/คำค้นหา)
+// แต่ยังเคารพตัวกรองอื่นๆ ที่ผู้ใช้เลือกไว้ (สถานะ/จังหวัด/อำเภอ/ตำบล/หน่วยงาน/คำค้นหา)
 function computeCaseTypeCounts(){
   const search = document.getElementById('fSearch').value.trim().toLowerCase();
   const tableSearch = document.getElementById('tableSearch').value.trim().toLowerCase();
   const base = RAW.filter(r=>{
-    if(activeKinds.length && !activeKinds.includes(r.caseType)) return false;
-    if(activeRecordKinds.length && !activeRecordKinds.includes(r.recordKind)) return false;
+    if(activeKinds.length && !activeKinds.includes(r.recordKind)) return false;
     if(activeStatuses.length && !activeStatuses.includes(STATUS_BUCKET(r.status))) return false;
+    if(selectedProvinces.size && !selectedProvinces.has(r.province)) return false;
     if(selectedAmphoes.size && !selectedAmphoes.has(r.amphoe)) return false;
     if(selectedTambons.size && !selectedTambons.has(r.tambon)) return false;
     if(selectedAgencies.size && !selectedAgencies.has(r.agency)) return false;
@@ -1483,6 +1711,11 @@ function renderCaseTabs(){
   document.querySelectorAll('#caseTabs .case-tab').forEach(btn=>{
     btn.classList.toggle('is-active', btn.dataset.tab === activeTab);
   });
+  const titleEl = document.getElementById('tableTitle');
+  if(titleEl){
+    const TAB_TITLES = {all:'รายการกรณีทั้งหมด', dumping:'รายการกรณีลักลอบทิ้งของเสีย', factory:'รายการโรงงาน/สถานประกอบการ'};
+    titleEl.textContent = TAB_TITLES[activeTab] || TAB_TITLES.all;
+  }
 }
 
 function renderStats(){
@@ -1496,9 +1729,8 @@ function renderStats(){
 
   const stats = [
     [total, 'กรณีทั้งหมด', ICONS.total, 'var(--primary-soft)', 'var(--primary)', null],
-    [factory, 'โรงงาน/สถานประกอบการ', ICONS.factory, 'var(--primary-soft)', 'var(--primary-2)', {caseType:'factory'}],
+    [factory, 'โรงงาน/สถานประกอบการ', ICONS.factory, 'var(--primary-soft)', 'var(--primary-2)', {kind:'registry'}],
     [dumping, 'ลักลอบทิ้งของเสีย', ICONS.dumping, 'var(--alert-soft)', 'var(--alert)', {caseType:'dumping'}],
-    [incidents, 'กรณีร้องเรียน/ตรวจพบ', ICONS.legal, 'var(--alert-soft)', 'var(--alert)', {kind:'incident'}],
     [legalAction, 'อยู่ระหว่าง/ดำเนินคดี', ICONS.legal, 'var(--progress-soft)', 'var(--progress)', null],
     [districts, 'อำเภอที่พบกรณี', ICONS.pin, 'var(--clear-soft)', 'var(--clear)', null]
   ];
@@ -1511,7 +1743,7 @@ function renderStats(){
   document.querySelectorAll('#statStrip [data-kpi-action]').forEach(card=>{
     card.addEventListener('click', ()=>{
       const action = JSON.parse(decodeURIComponent(card.getAttribute('data-kpi-action')));
-      if(action.kind) setRecordKindFilter(action.kind);
+      if(action.kind) setKindFilter(action.kind);
       if(action.caseType) setCaseTypeFilter(action.caseType);
       document.getElementById('tableSection') && document.getElementById('tableSection').scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -1527,7 +1759,7 @@ function renderStats(){
       const totalRegistry = RAW.filter(r=>r.recordKind==='registry').length;
       insight.innerHTML = '⚠ พบ '+totalIncidents+' กรณีร้องเรียน/ตรวจพบการกระทำผิด จากทั้งหมด '+RAW.length+' รายการ '+
         '(อีก '+totalRegistry+' รายการเป็นทะเบียนโรงงานลำดับที่ 105/106 ที่ยังไม่พบการกระทำผิด) — คลิกเพื่อดูเฉพาะกรณีร้องเรียน';
-      insight.onclick = () => setRecordKindFilter('incident');
+      insight.onclick = () => setKindFilter('incident');
     }
   }
 }
@@ -1536,13 +1768,6 @@ function setKindFilter(kind){
   activeKinds.length = 0;
   if(kind !== 'all') activeKinds.push(kind);
   renderChipGroup('chipKind', 'kind', activeKinds);
-  applyFilters();
-}
-// สำหรับคลิกจากการ์ด KPI/ข้อความสรุปที่อ้างอิง recordKind (ร้องเรียน/ตรวจพบ vs ขึ้นทะเบียน) โดยเฉพาะ
-// แยกจาก activeKinds ซึ่งตอนนี้ผูกกับตัวกรอง "ลักษณะข้อมูล" (caseType) ในแถบด้านซ้าย
-function setRecordKindFilter(kind){
-  activeRecordKinds.length = 0;
-  if(kind !== 'all') activeRecordKinds.push(kind);
   applyFilters();
 }
 function setCaseTypeFilter(ct){
@@ -1562,8 +1787,9 @@ const TILE_DARK = [
   {url:'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', attr:'', maxZoom:16}
 ];
 
+
 const LeafletMap = (function(){
-  let map, tileLayers = [], markersLayer;
+  let map, tileLayers = [], markersLayer, provinceLayer;
   let markerByKey = {}; // "lat,lng" -> [{marker, row}]
 
   function rowKey(r){ return r.lat + ',' + r.lng; }
@@ -1573,6 +1799,27 @@ const LeafletMap = (function(){
 
   function buildTileLayers(){
     return currentTiles().map(t => L.tileLayer(t.url, {maxZoom:t.maxZoom, attribution:t.attr}));
+  }
+
+  // พื้นที่สีของจังหวัด (choropleth) — แต่ละจังหวัดขึ้นคนละสีตาม provinceColor()
+  function buildProvinceLayer(){
+    return L.geoJSON(PROVINCE_GEOJSON, {
+      style: feature => ({
+        color: provinceColor(feature.properties.name_th),
+        weight: 1.5,
+        opacity: 0.85,
+        fillColor: provinceColor(feature.properties.name_th),
+        fillOpacity: 0.28
+      }),
+      onEachFeature: (feature, layer) => {
+        // ป้ายชื่อจังหวัดถาวรกลางพื้นที่ (ไม่ต้องชี้ก็เห็นชื่อ)
+        layer.bindTooltip(feature.properties.name_th, {
+          permanent:true, direction:'center', className:'province-area-label', interactive:false
+        });
+        layer.on('mouseover', () => layer.setStyle({fillOpacity:0.45}));
+        layer.on('mouseout', () => layer.setStyle({fillOpacity:0.28}));
+      }
+    });
   }
 
   function ensureBuilt(){
@@ -1587,6 +1834,7 @@ const LeafletMap = (function(){
     tileLayers = buildTileLayers();
     tileLayers.forEach(l => l.addTo(map));
 
+    provinceLayer = buildProvinceLayer().addTo(map);
     markersLayer = L.layerGroup().addTo(map);
   }
 
@@ -1599,20 +1847,38 @@ const LeafletMap = (function(){
 
   function markerIcon(row, bucket){
     const incidentCls = row.recordKind === 'incident' ? ' incident' : '';
+    const pColor = provinceColor(row.province);
+    const approxStyle = row.approxLocation ? 'opacity:.62;outline:2px dashed '+pColor+';outline-offset:1px;' : '';
     if(row.caseType === 'dumping'){
-      return L.divIcon({className:'', html:`<div class="leaflet-tri ${bucket}${incidentCls}"></div>`, iconSize:[18,16], iconAnchor:[9,15]});
+      const ring = `box-shadow:0 0 0 2.5px ${pColor}, 0 1px 3px rgba(0,0,0,.4);${approxStyle}`;
+      return L.divIcon({
+        className:'',
+        html:`<div class="leaflet-badge" style="${ring}"><div class="leaflet-tri ${bucket}${incidentCls}"></div></div>`,
+        iconSize:[22,22], iconAnchor:[11,11]
+      });
     }
-    const size = row.recordKind === 'incident' ? [16,16] : [13,13];
-    return L.divIcon({className:'', html:`<div class="leaflet-dot ${bucket}${incidentCls}"></div>`, iconSize:size, iconAnchor:[size[0]/2,size[1]/2]});
+    const dotSize = row.recordKind === 'incident' ? 16 : 13;
+    const badgeSize = dotSize + 7;
+    return L.divIcon({
+      className:'',
+      html:`<div class="leaflet-badge" style="width:${badgeSize}px;height:${badgeSize}px;box-shadow:0 0 0 2.5px ${pColor}, 0 1px 3px rgba(0,0,0,.4);${approxStyle}"><div class="leaflet-dot ${bucket}${incidentCls}"></div></div>`,
+      iconSize:[badgeSize,badgeSize], iconAnchor:[badgeSize/2,badgeSize/2]
+    });
   }
 
   function popupHtml(r){
+    const pColor = provinceColor(r.province);
+    const approxNote = r.approxLocation
+      ? `<div style="margin-top:4px;font-size:11px;color:var(--ink-faint);">⚠ ไม่มีพิกัดจริง หรือพิกัดที่มีอยู่ไม่ตรงกับจังหวัดที่ระบุ — แสดงตำแหน่งโดยประมาณกลางจังหวัดแทน</div>`
+      : '';
     return `<div class="map-popup"><b>${escapeHtml(r.caseName||'(ไม่ระบุชื่อ)')}</b>` +
+      `<span class="popup-province" style="border-color:${pColor};color:${pColor}">` +
+      `<span class="dot" style="background:${pColor}"></span>${escapeHtml(r.province||'ไม่ระบุจังหวัด')}</span><br>` +
       `${escapeHtml(r.tambon)} · ${escapeHtml(r.amphoe)}<br>` +
       `ลักษณะ: ${r.recordKind==='incident'?'⚠ ร้องเรียน/ตรวจพบ':'ขึ้นทะเบียนโรงงาน'}` +
       ` (${escapeHtml(r.locationType||'-')})<br>` +
       `ของเสีย: ${escapeHtml(r.wasteType||'-')}<br>` +
-      `สถานะ: ${escapeHtml(r.status||'-')}</div>`;
+      `สถานะ: ${escapeHtml(r.status||'-')}${approxNote}</div>`;
   }
 
   function fitToPoints(rows){
@@ -1653,7 +1919,18 @@ const LeafletMap = (function(){
     if(map) map.invalidateSize();
   }
 
-  return { ensureBuilt, fitToPoints, onContainerResize, applyTheme, focusOn };
+  // ซูมแผนที่ไปยังขอบเขตของจังหวัดที่เลือก (ใช้เมื่อกดชื่อจังหวัดในแถบ legend ใต้แผนที่)
+  function focusOnProvince(name){
+    ensureBuilt();
+    if(!provinceLayer) return;
+    let target = null;
+    provinceLayer.eachLayer(layer=>{
+      if(layer.feature && layer.feature.properties && layer.feature.properties.name_th === name) target = layer;
+    });
+    if(target) map.fitBounds(target.getBounds(), {padding:[24,24], maxZoom:11});
+  }
+
+  return { ensureBuilt, fitToPoints, onContainerResize, applyTheme, focusOn, focusOnProvince };
 })();
 
 function renderMap(){
@@ -1661,6 +1938,28 @@ function renderMap(){
   LeafletMap.fitToPoints(filtered);
   const count = filtered.filter(r=>r.lat!=null && r.lng!=null).length;
   document.getElementById('mapCount').textContent = count + ' ตำแหน่งบนแผนที่';
+  renderProvinceLegend();
+}
+
+// วาด legend สีประจำจังหวัด — แสดงครบทั้ง 7 จังหวัดของ EEC ภาคตะวันออกเสมอ พร้อมจำนวนกรณีรวมของแต่ละจังหวัด
+// (จำนวนจะอัปเดตตามตัวกรองที่เลือกอยู่ เพราะเรียกซ้ำทุกครั้งที่ applyFilters ทำงาน)
+function renderProvinceLegend(){
+  const el = document.getElementById('provinceLegend');
+  if(!el) return;
+  const provs = PROVINCE_GEOJSON.features.map(f => f.properties.name_th);
+  const provinceCounts = tally(filtered.map(r=>r.province).filter(Boolean));
+  el.innerHTML =
+    `<span class="province-legend-title">สีประจำจังหวัด (กดเพื่อซูมแผนที่):</span>` +
+    provs.map(p =>
+      `<button type="button" class="province-chip" data-province="${escapeHtml(p)}" style="border-color:${provinceColor(p)};color:${provinceColor(p)}">` +
+      `<span class="dot" style="background:${provinceColor(p)}"></span>${escapeHtml(p)}` +
+      `<span class="cnt">${provinceCounts[p]||0}</span></button>`
+    ).join('');
+  el.querySelectorAll('.province-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      LeafletMap.focusOnProvince(chip.getAttribute('data-province'));
+    });
+  });
 }
 
 
@@ -1770,6 +2069,21 @@ function renderCharts(){
     type:'bar',
     data:{ labels: amphoeTop.map(([k])=>k),
       datasets:[{data:amphoeTop.map(([,v])=>v), backgroundColor: barShades('#0EA5B7', amphoeTop.length), borderRadius:6, maxBarThickness:20}] },
+    options:{ indexAxis:'y', layout:{padding:{right:28}}, plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{ticks:{font:CHART_FONT},grid:{display:false}}} },
+    plugins:[barValuePlugin]
+  });
+
+  const provinceAll = tally(filtered.map(r=>r.province).filter(Boolean));
+  const provinceN = topNValue('provinceTopN', 5);
+  const provinceTop = topN(provinceAll, provinceN);
+  document.getElementById('provinceChartSub').textContent =
+    provinceTop.length ? 'แสดง '+provinceTop.length+' จาก '+Object.keys(provinceAll).length+' จังหวัด' : 'ไม่มีข้อมูล';
+  destroyChart('province');
+  charts.province = new Chart(document.getElementById('chartProvince'), {
+    type:'bar',
+    data:{ labels: provinceTop.map(([k])=>k),
+      datasets:[{data:provinceTop.map(([,v])=>v), backgroundColor: provinceTop.map(([k])=>provinceColor(k)), borderRadius:6, maxBarThickness:26}] },
     options:{ indexAxis:'y', layout:{padding:{right:28}}, plugins:{legend:{display:false}},
       scales:{x:{ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{ticks:{font:CHART_FONT},grid:{display:false}}} },
     plugins:[barValuePlugin]
@@ -1893,7 +2207,7 @@ function renderTable(){
         <div><span class="k">การดำเนินงาน</span><span class="v">${escapeHtml(r.operation||'-')}</span></div>
         <div><span class="k">รายละเอียดทางกฎหมาย</span><span class="v">${escapeHtml(r.legalDetail||'-')}</span></div>
         <div><span class="k">หมายเหตุ</span><span class="v">${escapeHtml(r.note||'-')}</span></div>
-        <div><span class="k">พิกัด</span><span class="v">${r.lat!=null?r.lat.toFixed(5):'-'}, ${r.lng!=null?r.lng.toFixed(5):'-'}</span></div>
+        <div><span class="k">พิกัด</span><span class="v">${r.lat!=null?r.lat.toFixed(5):'-'}, ${r.lng!=null?r.lng.toFixed(5):'-'}${r.approxLocation?' <em style="color:var(--ink-faint);font-style:normal;">(ตำแหน่งโดยประมาณ กลาง'+escapeHtml(r.province||'จังหวัด')+' — ไม่มีพิกัดจริง หรือพิกัดเดิมไม่ตรงกับจังหวัดที่ระบุ)</em>':''}</span></div>
       </div>
     </td></tr>`;
   }).join('');
@@ -1918,16 +2232,11 @@ function renderTable(){
   });
 }
 
-document.getElementById('caseTabs').addEventListener('click', (e)=>{
+document.getElementById('caseTabs') && document.getElementById('caseTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('.case-tab');
   if(!btn) return;
   setCaseTypeFilter(btn.dataset.tab);
   document.getElementById('mapSection') && document.getElementById('mapSection').scrollIntoView({behavior:'smooth', block:'start'});
-});
-document.getElementById('chipCaseType').addEventListener('click', (e)=>{
-  const chip = e.target.closest('.chip'); if(!chip) return;
-  toggleChipGroup('chipCaseType', 'type', activeCaseTypes, chip);
-  applyFilters();
 });
 document.getElementById('chipStatus').addEventListener('click', (e)=>{
   const chip = e.target.closest('.chip'); if(!chip) return;
@@ -1943,205 +2252,73 @@ document.getElementById('fSearch').addEventListener('input', applyFilters);
 document.getElementById('tableSearch').addEventListener('input', applyFilters);
 document.getElementById('wasteTopN').addEventListener('change', renderCharts);
 document.getElementById('amphoeTopN').addEventListener('change', renderCharts);
+document.getElementById('provinceTopN').addEventListener('change', renderCharts);
 document.getElementById('factoryTypeTopN').addEventListener('change', renderCharts);
 document.getElementById('resetFilters').addEventListener('click', ()=>{
-  activeCaseTypes.length = 0; activeStatuses.length = 0; activeKinds.length = 0; activeRecordKinds.length = 0;
+  activeCaseTypes.length = 0; activeStatuses.length = 0; activeKinds.length = 0;
   renderChipGroup('chipCaseType', 'type', activeCaseTypes);
   renderChipGroup('chipStatus', 'status', activeStatuses);
   renderChipGroup('chipKind', 'kind', activeKinds);
-  selectedAmphoes.clear(); selectedTambons.clear(); selectedAgencies.clear();
+  selectedProvinces.clear(); selectedAmphoes.clear(); selectedTambons.clear(); selectedAgencies.clear();
   document.getElementById('fSearch').value=''; document.getElementById('tableSearch').value='';
   rebuildFilterOptions(); applyFilters();
 });
 document.getElementById('resetSourceBtn').addEventListener('click', ()=>{
-  if(gsheetConfig){ disconnectGsheet(true); document.getElementById('gsheetStatus').style.display='none'; }
-  RAW = enrichRecords(EMBEDDED_DATA.slice());
+  RAW = fillFallbackCoords(enrichRecords(EMBEDDED_DATA.slice()));
   setIndicator('ยังไม่มีข้อมูล', false);
-  setStatus('ยังไม่มีข้อมูล กรุณาอัปโหลดไฟล์ .csv, .xlsx หรือ .xls เพื่อเริ่มใช้งาน', 'neutral');
+  setStatus('ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet หรืออัปโหลดไฟล์ .csv, .xlsx เพื่อเริ่มใช้งาน', 'neutral');
   document.getElementById('lastUpdated').textContent = 'อัปเดตล่าสุด: —';
+  stopSheetAutoRefresh();
+  document.getElementById('sheetSyncRow').style.display = 'none';
+  document.getElementById('sheetUrlInput').value = '';
+  try{ localStorage.removeItem(SHEET_URL_KEY); }catch(e){}
   rebuildFilterOptions(); applyFilters();
 });
 
-// ========================= เชื่อมต่อ Google Sheet (ดึงข้อมูลเรียลไทม์) =========================
-// สองโหมด:
-// 1) "public"    - ชีตแชร์แบบ Anyone with the link -> ดึงผ่าน gviz/tq เป็น CSV (ข้ามโดเมนได้)
-// 2) "appsscript" - ชีตปิด/ส่วนตัว -> ดึงผ่าน Web App ของ Apps Script ที่ทำงานในนามเจ้าของชีต ("Execute as: Me")
-//    ตัวชีตจริงไม่ต้องเปิดสาธารณะ มีแค่คนที่รู้ลิงก์ Web App เท่านั้นที่ดึงข้อมูลได้
-let gsheetTimer = null;
-let gsheetConfig = null; // {mode, sheetId?, webAppUrl?, tabName}
+// Google Sheet connect wiring
+(function initSheetConnect(){
+  const urlInput = document.getElementById('sheetUrlInput');
+  const connectBtn = document.getElementById('connectSheetBtn');
+  const autoToggle = document.getElementById('autoRefreshToggle');
+  const manualBtn = document.getElementById('manualRefreshBtn');
+  const syncRow = document.getElementById('sheetSyncRow');
 
-function extractSheetId(input){
-  const s = String(input||'').trim();
-  const m = s.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if(m) return m[1];
-  if(/^[a-zA-Z0-9-_]{20,}$/.test(s)) return s; // เผื่อผู้ใช้วางเฉพาะ ID มาตรงๆ
-  return null;
-}
+  let savedUrl = null;
+  try{ savedUrl = localStorage.getItem(SHEET_URL_KEY); }catch(e){}
+  const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Oi70x6bDCdKam1JoMEJFjElv1JfYomNnwlQm978tn4s/edit?usp=sharing';
+  urlInput.value = savedUrl || DEFAULT_SHEET_URL;
 
-function buildGvizCsvUrl(sheetId, tabName){
-  let url = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId) + '/gviz/tq?tqx=out:csv';
-  if(tabName) url += '&sheet=' + encodeURIComponent(tabName);
-  return url;
-}
+  let savedAuto = null;
+  try{ savedAuto = localStorage.getItem(SHEET_AUTOREFRESH_KEY); }catch(e){}
+  autoToggle.checked = savedAuto !== 'off';
 
-function buildAppsScriptUrl(webAppUrl, tabName){
-  const base = String(webAppUrl||'').trim();
-  if(!tabName) return base;
-  const sep = base.indexOf('?') === -1 ? '?' : '&';
-  return base + sep + 'sheet=' + encodeURIComponent(tabName);
-}
+  connectBtn.addEventListener('click', ()=>{
+    connectGoogleSheet(urlInput.value).then(ok=>{
+      if(ok && autoToggle.checked) startSheetAutoRefresh();
+    });
+  });
+  manualBtn.addEventListener('click', ()=>{
+    connectGoogleSheet(urlInput.value);
+  });
+  autoToggle.addEventListener('change', ()=>{
+    try{ localStorage.setItem(SHEET_AUTOREFRESH_KEY, autoToggle.checked ? 'on' : 'off'); }catch(e){}
+    if(autoToggle.checked) startSheetAutoRefresh(); else stopSheetAutoRefresh();
+  });
+  urlInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); connectBtn.click(); }
+  });
 
-function setGsheetStatus(msg, cls){
-  const el = document.getElementById('gsheetStatus');
-  el.style.display = 'flex';
-  const state = cls || 'success';
-  el.className = 'source-status' + (state !== 'success' ? ' '+state : '');
-  el.innerHTML = STATUS_ICONS[state] + '<span class="msg"></span>';
-  el.querySelector('.msg').textContent = msg;
-}
-
-function updateGsheetModeUI(){
-  const mode = document.getElementById('gsheetMode').value;
-  document.getElementById('gsheetModePublic').style.display = mode === 'public' ? 'block' : 'none';
-  document.getElementById('gsheetModeAppsScript').style.display = mode === 'appsscript' ? 'block' : 'none';
-  document.getElementById('gsheetHowtoPublic').style.display = mode === 'public' ? 'block' : 'none';
-  document.getElementById('gsheetHowtoAppsScript').style.display = mode === 'appsscript' ? 'block' : 'none';
-}
-document.getElementById('gsheetMode').addEventListener('change', updateGsheetModeUI);
-updateGsheetModeUI();
-
-async function syncGoogleSheet(isAuto){
-  if(!gsheetConfig) return;
-  if(!isAuto) setGsheetStatus('กำลังดึงข้อมูลจาก Google Sheet ...', 'loading');
-  try{
-    let rows;
-    if(gsheetConfig.mode === 'appsscript'){
-      const url = buildAppsScriptUrl(gsheetConfig.webAppUrl, gsheetConfig.tabName);
-      const res = await fetch(url, {cache:'no-store'});
-      if(!res.ok) throw new Error('เชื่อมต่อ Web App ไม่สำเร็จ (HTTP '+res.status+') — ตรวจสอบว่า Deploy แบบ "Execute as: Me" และ "Who has access: Anyone" แล้ว');
-      const json = await res.json();
-      if(json && json.error) throw new Error(json.error);
-      if(!Array.isArray(json) || !json.length) throw new Error('Web App ตอบกลับมาแต่ไม่มีข้อมูลแถวใดเลย');
-      rows = json;
-    } else {
-      const sheetId = gsheetConfig.sheetId;
-      const url = buildGvizCsvUrl(sheetId, gsheetConfig.tabName);
-      const res = await fetch(url, {cache:'no-store'});
-      if(!res.ok) throw new Error('เชื่อมต่อไม่สำเร็จ (HTTP '+res.status+') — ตรวจสอบว่าตั้งค่าการแชร์เป็น "ทุกคนที่มีลิงก์ - ดูได้" แล้วหรือยัง');
-      const csvText = (await res.text()).trim();
-      if(!csvText || csvText.indexOf('<') === 0) throw new Error('ไม่พบข้อมูล หรือชื่อชีต/แท็บที่ระบุไม่ถูกต้อง');
-      const parsed = Papa.parse(csvText, {skipEmptyLines:true});
-      if(parsed.errors && parsed.errors.length) throw new Error('รูปแบบข้อมูลจาก Google Sheet ไม่ถูกต้อง: '+parsed.errors[0].message);
-      rows = parsed.data;
+  // เชื่อมต่ออัตโนมัติเมื่อโหลดหน้า ถ้ามีลิงก์อยู่แล้ว (ที่บันทึกไว้ หรือลิงก์ตั้งต้น)
+  connectGoogleSheet(urlInput.value, {silent:true}).then(ok=>{
+    if(ok){
+      syncRow.style.display = 'flex';
+      if(autoToggle.checked) startSheetAutoRefresh();
+    } else if(!savedUrl){
+      // ยังไม่เคยเชื่อมต่อสำเร็จและไม่มีลิงก์บันทึกไว้ — ให้แสดงสถานะปกติ ไม่ต้องขึ้น error รก ๆ ตอนเปิดหน้าครั้งแรก
+      setStatus('ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet หรืออัปโหลดไฟล์ .csv, .xlsx เพื่อเริ่มใช้งาน', 'neutral');
     }
-    const newData = rowsToRecords(rows);
-    const label = gsheetConfig.mode === 'appsscript' ? 'Google Sheet ผ่าน Apps Script · เรียลไทม์' : 'Google Sheet · เรียลไทม์';
-    applyNewData(newData, label);
-    setGsheetStatus('เชื่อมต่อสำเร็จ · ซิงก์ล่าสุด '+new Date().toLocaleTimeString('th-TH'), 'success');
-  }catch(err){
-    const corsHint = (err instanceof TypeError)
-      ? (gsheetConfig.mode === 'appsscript'
-          ? ' (ตรวจสอบว่าคัดลอกลิงก์ /exec มาถูกต้อง และ Deploy เป็น "Anyone" แล้ว)'
-          : ' (มักเกิดจากชีตยังไม่ได้แชร์แบบสาธารณะ — ตั้ง Share > General access > "Anyone with the link" > Viewer)')
-      : '';
-    setGsheetStatus('ซิงก์ไม่สำเร็จ: '+err.message+corsHint, 'err');
-  }
-}
-
-function startGsheetPolling(intervalMs){
-  if(gsheetTimer){ clearInterval(gsheetTimer); gsheetTimer = null; }
-  if(intervalMs > 0){
-    gsheetTimer = setInterval(()=>syncGoogleSheet(true), intervalMs);
-  }
-}
-
-function disconnectGsheet(silent){
-  startGsheetPolling(0);
-  gsheetConfig = null;
-  document.getElementById('gsheetConnectBtn').style.display = 'flex';
-  document.getElementById('gsheetDisconnectBtn').style.display = 'none';
-  clearSavedGsheetConfig();
-  if(!silent) setGsheetStatus('ตัดการเชื่อมต่อ Google Sheet แล้ว', 'neutral');
-}
-
-// จำการเชื่อมต่อไว้ในเบราว์เซอร์เครื่องนี้ (localStorage) เพื่อไม่ต้องวางลิงก์ใหม่ทุกครั้งที่เปิดไฟล์
-const GSHEET_STORAGE_KEY = 'eec_gsheet_config_v1';
-function saveGsheetConfig(cfg, intervalMs){
-  try{ localStorage.setItem(GSHEET_STORAGE_KEY, JSON.stringify(Object.assign({}, cfg, {intervalMs}))); }catch(e){}
-}
-function loadSavedGsheetConfig(){
-  try{
-    const raw = localStorage.getItem(GSHEET_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){ return null; }
-}
-function clearSavedGsheetConfig(){
-  try{ localStorage.removeItem(GSHEET_STORAGE_KEY); }catch(e){}
-}
-
-async function connectGsheet(mode, params, intervalMs, isRestore){
-  document.getElementById('gsheetMode').value = mode;
-  updateGsheetModeUI();
-  document.getElementById('gsheetTab').value = params.tabName || '';
-  document.getElementById('gsheetInterval').value = String(intervalMs || 0);
-  if(mode === 'appsscript'){
-    document.getElementById('gsheetWebAppUrl').value = params.webAppUrl || '';
-    gsheetConfig = { mode, webAppUrl: params.webAppUrl, tabName: params.tabName || '' };
-  } else {
-    document.getElementById('gsheetUrl').value = params.sheetUrl || document.getElementById('gsheetUrl').value;
-    gsheetConfig = { mode, sheetId: params.sheetId, tabName: params.tabName || '' };
-  }
-  if(isRestore) setGsheetStatus('กำลังเชื่อมต่ออัตโนมัติจากการตั้งค่าที่บันทึกไว้ ...', 'loading');
-  await syncGoogleSheet(false);
-  startGsheetPolling(intervalMs);
-  document.getElementById('gsheetConnectBtn').style.display = 'none';
-  document.getElementById('gsheetDisconnectBtn').style.display = 'flex';
-  saveGsheetConfig(gsheetConfig, intervalMs);
-}
-
-document.getElementById('gsheetConnectBtn').addEventListener('click', async ()=>{
-  const mode = document.getElementById('gsheetMode').value;
-  const tabName = document.getElementById('gsheetTab').value.trim();
-  const intervalMs = Number(document.getElementById('gsheetInterval').value) || 0;
-  if(mode === 'appsscript'){
-    const webAppUrl = document.getElementById('gsheetWebAppUrl').value.trim();
-    if(!webAppUrl || webAppUrl.indexOf('/exec') === -1){
-      setGsheetStatus('กรุณาวาง Web App URL ที่ได้จากการ Deploy (ต้องลงท้ายด้วย /exec)', 'err');
-      return;
-    }
-    await connectGsheet('appsscript', {webAppUrl, tabName}, intervalMs, false);
-  } else {
-    const sheetId = extractSheetId(document.getElementById('gsheetUrl').value);
-    if(!sheetId){
-      setGsheetStatus('ลิงก์ Google Sheet ไม่ถูกต้อง กรุณาวางลิงก์แบบเต็ม (https://docs.google.com/spreadsheets/d/...)', 'err');
-      return;
-    }
-    await connectGsheet('public', {sheetId, tabName}, intervalMs, false);
-  }
-});
-
-document.getElementById('gsheetDisconnectBtn').addEventListener('click', ()=> disconnectGsheet(false));
-
-document.getElementById('gsheetInterval').addEventListener('change', ()=>{
-  if(gsheetConfig){
-    const intervalMs = Number(document.getElementById('gsheetInterval').value) || 0;
-    startGsheetPolling(intervalMs);
-    saveGsheetConfig(gsheetConfig, intervalMs);
-  }
-});
-
-// เชื่อมต่ออัตโนมัติทันทีที่เปิดไฟล์ — ใช้ค่าที่ผู้ใช้เคยปรับแต่งเองก่อน (ถ้ามี) ไม่งั้นใช้ค่าที่ฝังไว้ในไฟล์
-(function restoreGsheetConnection(){
-  const saved = loadSavedGsheetConfig();
-  const cfg = saved || EMBEDDED_GSHEET_CONFIG;
-  if(!cfg) return;
-  if(cfg.mode === 'appsscript' && cfg.webAppUrl){
-    connectGsheet('appsscript', {webAppUrl: cfg.webAppUrl, tabName: cfg.tabName}, cfg.intervalMs || 30000, true);
-  } else if(cfg.mode === 'public' && cfg.sheetId){
-    connectGsheet('public', {sheetId: cfg.sheetId, tabName: cfg.tabName}, cfg.intervalMs || 30000, true);
-  }
+  });
 })();
-// ========================= จบส่วนเชื่อมต่อ Google Sheet =========================
 
 // file upload wiring
 const fileInput = document.getElementById('fileUpload');
