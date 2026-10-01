@@ -619,7 +619,7 @@
 
 <div class="hero">
   <h1>ภาพรวมกรณีลักลอบทิ้งของเสียและโรงงานรีไซเคิลในพื้นที่ EEC</h1>
-  <p>ติดตามตำแหน่ง สถานะคดี และแนวโน้มของกรณีที่รายงานเข้ามา อัปเดตอัตโนมัติเมื่อเชื่อมกับ Google Sheet หรืออัปโหลดไฟล์ข้อมูลใหม่</p>
+  <p>ติดตามตำแหน่ง สถานะคดี และแนวโน้มของกรณีที่รายงานเข้ามา อัปเดตอัตโนมัติเมื่อเชื่อมกับ Google Sheet</p>
   <div class="hero-insight" id="heroInsight" style="margin-top:14px;font-size:13px;cursor:pointer;"></div>
 </div>
 
@@ -729,7 +729,7 @@
 
     <div class="source-panel">
       <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>แหล่งข้อมูล</h2>
-      <p class="help">เชื่อมต่อ Google Sheet เพื่อดึงข้อมูลอัตโนมัติ หรืออัปโหลดไฟล์ .csv / .xlsx เอง</p>
+      <p class="help">เชื่อมต่อ Google Sheet เพื่อดึงข้อมูลอัตโนมัติ</p>
 
       <input type="text" id="sheetUrlInput" placeholder="วางลิงก์ Google Sheet ที่นี่...">
       <button class="btn-primary" id="connectSheetBtn">
@@ -752,16 +752,8 @@
         1) เปิดชีตของคุณ → กด "Share" → ตั้งค่าเป็น "Anyone with the link" (ดูได้) → คัดลอกลิงก์แล้ววางด้านบน<br>
         2) หากชีตมีหลายแท็บ ให้เปิดแท็บที่ต้องการก่อนคัดลอกลิงก์ (ลิงก์จะพาไปแท็บนั้นโดยอัตโนมัติ)
       </details>
-
-      <div class="divider-or">หรือ</div>
-
-      <label class="upload-drop" id="uploadDrop" for="fileUpload">
-        <div id="uploadDropText">📄 ลากไฟล์มาวาง หรือคลิกเพื่อเลือก<br><span style="color:var(--ink-faint)">.csv, .xlsx, .xls</span></div>
-        <input type="file" id="fileUpload" accept=".csv,.xlsx,.xls">
-      </label>
-
       <button class="btn-ghost" id="resetSourceBtn">ล้างข้อมูลทั้งหมด</button>
-      <div class="source-status neutral" id="sourceStatus"><span class="msg">ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet หรืออัปโหลดไฟล์ .csv, .xlsx เพื่อเริ่มใช้งาน</span></div>
+      <div class="source-status neutral" id="sourceStatus"><span class="msg">ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet เพื่อเริ่มใช้งาน</span></div>
     </div>
   </aside>
 
@@ -894,7 +886,7 @@
             <tbody id="tableBody"></tbody>
           </table>
         </div>
-        <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีข้อมูล กรุณาอัปโหลดไฟล์ข้อมูลทางด้านซ้ายเพื่อเริ่มใช้งาน</div>
+        <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet ทางด้านซ้ายเพื่อเริ่มใช้งาน</div>
       </div>
     </section>
   </main>
@@ -1976,8 +1968,8 @@ function renderStats(){
   const insight = document.getElementById('heroInsight');
   if(insight){
     if(RAW.length === 0){
-      insight.innerHTML = '📄 ยังไม่มีข้อมูล — อัปโหลดไฟล์ .csv หรือ .xlsx ทางแถบด้านซ้ายเพื่อเริ่มใช้งานแดชบอร์ด';
-      insight.onclick = () => document.getElementById('uploadDrop') && document.getElementById('uploadDrop').scrollIntoView({behavior:'smooth', block:'center'});
+      insight.innerHTML = '📄 ยังไม่มีข้อมูล — เชื่อมต่อ Google Sheet ทางแถบด้านซ้ายเพื่อเริ่มใช้งานแดชบอร์ด';
+      insight.onclick = () => document.getElementById('sheetUrlInput') && document.getElementById('sheetUrlInput').scrollIntoView({behavior:'smooth', block:'center'});
     } else {
       const totalIncidents = RAW.filter(r=>r.recordKind==='incident').length;
       const totalRegistry = RAW.filter(r=>r.recordKind==='registry').length;
@@ -2493,7 +2485,7 @@ function renderTable(){
   if(!filtered.length){
     body.innerHTML = '';
     empty.textContent = RAW.length === 0
-      ? 'ยังไม่มีข้อมูล กรุณาอัปโหลดไฟล์ข้อมูลทางด้านซ้ายเพื่อเริ่มใช้งาน'
+      ? 'ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet ทางด้านซ้ายเพื่อเริ่มใช้งาน'
       : 'ไม่พบกรณีที่ตรงกับตัวกรองที่เลือก';
     empty.style.display = 'block';
     return;
@@ -2592,7 +2584,7 @@ document.getElementById('resetFilters').addEventListener('click', ()=>{
 document.getElementById('resetSourceBtn').addEventListener('click', ()=>{
   RAW = fillFallbackCoords(enrichRecords(EMBEDDED_DATA.slice()));
   setIndicator('ยังไม่มีข้อมูล', false);
-  setStatus('ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet หรืออัปโหลดไฟล์ .csv, .xlsx เพื่อเริ่มใช้งาน', 'neutral');
+  setStatus('ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet เพื่อเริ่มใช้งาน', 'neutral');
   document.getElementById('lastUpdated').textContent = 'อัปเดตล่าสุด: —';
   stopSheetAutoRefresh();
   document.getElementById('sheetSyncRow').style.display = 'none';
@@ -2641,24 +2633,11 @@ document.getElementById('resetSourceBtn').addEventListener('click', ()=>{
       if(autoToggle.checked) startSheetAutoRefresh();
     } else if(!savedUrl){
       // ยังไม่เคยเชื่อมต่อสำเร็จและไม่มีลิงก์บันทึกไว้ — ให้แสดงสถานะปกติ ไม่ต้องขึ้น error รก ๆ ตอนเปิดหน้าครั้งแรก
-      setStatus('ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet หรืออัปโหลดไฟล์ .csv, .xlsx เพื่อเริ่มใช้งาน', 'neutral');
+      setStatus('ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet เพื่อเริ่มใช้งาน', 'neutral');
     }
   });
 })();
 
-// file upload wiring
-const fileInput = document.getElementById('fileUpload');
-const dropZone = document.getElementById('uploadDrop');
-fileInput.addEventListener('change', (e)=>{
-  handleUploadedFile(e.target.files[0]);
-  e.target.value = ''; // reset so selecting the same file again still fires 'change'
-});
-['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.classList.add('drag'); }));
-['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.classList.remove('drag'); }));
-dropZone.addEventListener('drop', (e)=>{
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if(file) handleUploadedFile(file);
-});
 
 // theme toggle
 const SUN_PATH = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
