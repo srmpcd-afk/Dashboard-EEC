@@ -727,7 +727,8 @@
 
     <button class="reset-btn" id="resetFilters">ล้างตัวกรองทั้งหมด</button>
 
-    <div class="source-panel">
+    <button type="button" class="btn-ghost" id="srcUnlockBtn" style="width:100%;margin-top:10px;">🔒 แหล่งข้อมูล (ต้องใช้รหัสผ่าน)</button>
+    <div class="source-panel" style="display:none">
       <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>แหล่งข้อมูล</h2>
       <p class="help">เชื่อมต่อ Google Sheet เพื่อดึงข้อมูลอัตโนมัติ</p>
 
@@ -752,6 +753,7 @@
         1) เปิดชีตของคุณ → กด "Share" → ตั้งค่าเป็น "Anyone with the link" (ดูได้) → คัดลอกลิงก์แล้ววางด้านบน<br>
         2) หากชีตมีหลายแท็บ ให้เปิดแท็บที่ต้องการก่อนคัดลอกลิงก์ (ลิงก์จะพาไปแท็บนั้นโดยอัตโนมัติ)
       </details>
+      <button class="btn-ghost" id="srcRelockBtn" type="button">🔒 ล็อกแหล่งข้อมูล</button>
       <button class="btn-ghost" id="resetSourceBtn">ล้างข้อมูลทั้งหมด</button>
       <div class="source-status neutral" id="sourceStatus"><span class="msg">ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet เพื่อเริ่มใช้งาน</span></div>
     </div>
@@ -2638,6 +2640,60 @@ document.getElementById('resetSourceBtn').addEventListener('click', ()=>{
   });
 })();
 
+
+// ล็อกแหล่งข้อมูล: ต้องใส่รหัสผ่านก่อนเห็น/แก้ไขลิงก์ Google Sheet
+function sha256Js(msg){
+  const enc=new TextEncoder().encode(msg), l=enc.length*8, K=[], H=[];
+  let n=2,c=0; const isP=x=>{for(let i=2;i*i<=x;i++) if(x%i===0) return false; return true;};
+  while(c<64){ if(isP(n)){ if(c<8) H[c]=(Math.pow(n,.5)%1*4294967296)|0; K[c]=(Math.pow(n,1/3)%1*4294967296)|0; c++; } n++; }
+  const padLen=((enc.length+9+63)>>6)<<6, buf=new Uint8Array(padLen); buf.set(enc); buf[enc.length]=0x80;
+  const dv=new DataView(buf.buffer); dv.setUint32(padLen-4,l>>>0); dv.setUint32(padLen-8,Math.floor(l/4294967296));
+  const w=new Uint32Array(64); let h=H.slice();
+  for(let o=0;o<padLen;o+=64){
+    for(let i=0;i<16;i++) w[i]=dv.getUint32(o+i*4);
+    for(let i=16;i<64;i++){ const a=w[i-15], b=w[i-2];
+      w[i]=(w[i-16]+((a>>>7|a<<25)^(a>>>18|a<<14)^(a>>>3))+w[i-7]+((b>>>17|b<<15)^(b>>>19|b<<13)^(b>>>10)))|0; }
+    let [a,b,c2,d,e,f,g,hh]=h;
+    for(let i=0;i<64;i++){
+      const t1=(hh+((e>>>6|e<<26)^(e>>>11|e<<21)^(e>>>25|e<<7))+((e&f)^(~e&g))+K[i]+w[i])|0;
+      const t2=(((a>>>2|a<<30)^(a>>>13|a<<19)^(a>>>22|a<<10))+((a&b)^(a&c2)^(b&c2)))|0;
+      hh=g; g=f; f=e; e=(d+t1)|0; d=c2; c2=b; b=a; a=(t1+t2)|0;
+    }
+    h=[h[0]+a|0,h[1]+b|0,h[2]+c2|0,h[3]+d|0,h[4]+e|0,h[5]+f|0,h[6]+g|0,h[7]+hh|0];
+  }
+  return h.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
+}
+(function initSourceLock(){
+  const HASH='14f9c039f3017a6fe2ac0d279befe2e522c71225ae8ffdfcca1b90626d42e1ed', SALT='eec-dashboard|';
+  const panel=document.querySelector('.source-panel'), btn=document.getElementById('srcUnlockBtn'), re=document.getElementById('srcRelockBtn');
+  if(!panel||!btn) return;
+  async function hashOf(p){
+    const str=SALT+p;
+    if(window.crypto&&crypto.subtle){ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
+    return sha256Js(str);
+  }
+  const lock=()=>{ panel.style.display='none'; btn.style.display=''; };
+  const unlock=()=>{ panel.style.display=''; btn.style.display='none'; };
+  re.onclick=lock;
+  let fails=0, until=0;
+  btn.onclick=()=>{
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483002;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px;';
+    ov.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:18px 20px;width:min(92vw,340px);font:14px/1.5 sans-serif"><b style="font-size:16px">🔒 ใส่รหัสผ่านเพื่อแก้ไขแหล่งข้อมูล</b><input id="slPw" type="password" autocomplete="off" style="width:100%;padding:9px;margin:12px 0 6px;border:1px solid #bbb;border-radius:8px" placeholder="รหัสผ่าน"><div id="slMsg" style="min-height:20px;color:#c0392b;font-size:13px"></div><div style="display:flex;gap:8px;margin-top:6px"><button id="slOk" style="flex:1;background:#2b5797;color:#fff;border:0;border-radius:999px;padding:9px;font-weight:600;cursor:pointer">ยืนยัน</button><button id="slNo" style="background:#eee;border:0;border-radius:999px;padding:9px 16px;cursor:pointer">ยกเลิก</button></div></div>';
+    document.body.appendChild(ov);
+    const pw=ov.querySelector('#slPw'), msg=ov.querySelector('#slMsg'); pw.focus();
+    const close=()=>ov.remove();
+    async function submit(){
+      if(Date.now()<until){ msg.textContent='ลองผิดหลายครั้ง กรุณารอสักครู่ก่อนลองใหม่'; return; }
+      if((await hashOf(pw.value))===HASH){ fails=0; close(); unlock(); }
+      else { fails++; pw.value=''; msg.textContent='รหัสผ่านไม่ถูกต้อง'; if(fails>=5){ until=Date.now()+30000; fails=0; msg.textContent='ผิดครบ 5 ครั้ง กรุณารอ 30 วินาที'; } }
+    }
+    ov.querySelector('#slOk').onclick=submit;
+    ov.querySelector('#slNo').onclick=close;
+    pw.addEventListener('keydown',e=>{ if(e.key==='Enter') submit(); if(e.key==='Escape') close(); });
+    ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  };
+})();
 
 // theme toggle
 const SUN_PATH = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
