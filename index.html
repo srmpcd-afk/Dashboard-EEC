@@ -583,6 +583,14 @@
     font-size:12px;color:var(--ink-faint);
   }
 
+  .photo-strip{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;}
+  .photo-strip a{display:block;line-height:0;}
+  .photo-strip img{max-width:100%;border-radius:8px;border:1px solid var(--line,#ddd);object-fit:cover;background:#eee;}
+  .photo-strip.lg img{width:170px;height:120px;}
+  .photo-strip.md img{width:100%;max-width:270px;max-height:170px;}
+  .photo-strip.sm img{width:44px;height:44px;border-radius:6px;}
+  .photo-strip.sm .photo-fail{white-space:nowrap;padding:6px 8px;}
+  .photo-fail{display:inline-block;line-height:1.3;font-size:12px;padding:8px 10px;border:1px dashed #999;border-radius:8px;color:#555;background:#f6f6f6;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 </head>
@@ -880,7 +888,7 @@
             <thead>
               <tr>
                 <th>วันที่</th><th>ประเภท</th><th>ลักษณะ</th><th>ชื่อกรณี / โรงงาน</th>
-                <th>ตำบล / อำเภอ</th><th>ประเภทของเสีย</th><th>สถานะ</th><th>หน่วยงาน</th><th>แผนที่</th>
+                <th>ตำบล / อำเภอ</th><th>ประเภทของเสีย</th><th>สถานะ</th><th>หน่วยงาน</th><th>ภาพ</th><th>แผนที่</th>
               </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -1098,6 +1106,214 @@ function normalizeTs(v){
   return String(v);
 }
 
+// ---------- ภาพการเข้าตรวจสอบ (ลิงก์ Google Drive หรือ URL รูป; หลายลิงก์คั่นด้วย , หรือขึ้นบรรทัดใหม่) ----------
+function parsePhotos(...vals){
+  const out = [], seen = new Set();
+  vals.forEach(v=>{
+    String(v||'').split(/[\s,;]+/).forEach(tok=>{
+      if(!/^https?:\/\//i.test(tok)) return;
+      const m = tok.match(/[?&]id=([\w-]{15,})/) || tok.match(/\/d\/([\w-]{15,})/);
+      const item = m
+        ? {id:m[1], href:'https://drive.google.com/file/d/'+m[1]+'/view', src:'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000', alts:['https://lh3.googleusercontent.com/d/'+m[1]+'=w1000','https://drive.google.com/uc?export=view&id='+m[1]]}
+        : {href:tok, src:tok};
+      if(!seen.has(item.href)){ seen.add(item.href); out.push(item); }
+    });
+  });
+  return out;
+}
+// ===== ตัวอย่างเอกสารจาก Google Drive (API Key หรือล็อกอิน Google) =====
+const DRIVE_CFG_KEY='eec_drive_cfg';
+let DRIVE_CFG={key:'',client:'',script:'',token:''}, DRIVE_TOKEN=null;
+try{ Object.assign(DRIVE_CFG, JSON.parse(localStorage.getItem(DRIVE_CFG_KEY)||'{}')); }catch(e){}
+const DRIVE_CACHE={}, DRIVE_PENDING={}, _scripts={};
+function loadScript(src){
+  if(_scripts[src]) return _scripts[src];
+  return _scripts[src]=new Promise((res,rej)=>{ const t=document.createElement('script'); t.src=src; t.onload=res; t.onerror=()=>rej(new Error('โหลดไลบรารีไม่ได้: '+src)); document.head.appendChild(t); });
+}
+async function driveFetch(path){
+  const sep=path.indexOf('?')>=0?'&':'?';
+  const url='https://www.googleapis.com/drive/v3/'+path+(DRIVE_TOKEN?'':sep+'key='+encodeURIComponent(DRIVE_CFG.key));
+  const r=await fetch(url,DRIVE_TOKEN?{headers:{Authorization:'Bearer '+DRIVE_TOKEN}}:{});
+  if(!r.ok) throw new Error('Drive '+r.status);
+  return r;
+}
+function textCard(title, text){
+  const c=document.createElement('canvas'); c.width=240; c.height=170; const g=c.getContext('2d');
+  g.fillStyle='#fff'; g.fillRect(0,0,240,170); g.fillStyle='#2b5797'; g.fillRect(0,0,240,26);
+  g.fillStyle='#fff'; g.font='bold 14px sans-serif'; g.fillText(title,10,18);
+  g.fillStyle='#222'; g.font='13px sans-serif';
+  let line='',y=46,n=0; for(const ch of String(text||'').replace(/\s+/g,' ').slice(0,200)){ line+=ch; if(g.measureText(line).width>212){ g.fillText(line,10,y); y+=18; line=''; if(++n>=6) break; } }
+  if(line&&n<6) g.fillText(line,10,y);
+  return c.toDataURL('image/png');
+}
+async function pdfFromBuffer(buf){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+  const pg=await doc.getPage(1), vp=pg.getViewport({scale:.7}), c=document.createElement('canvas');
+  c.width=vp.width; c.height=vp.height;
+  await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+  return {kind:'pdf', doc, thumb:c.toDataURL('image/jpeg',.8)};
+}
+async function gas(id, action){
+  const u=DRIVE_CFG.script+(DRIVE_CFG.script.indexOf('?')>=0?'&':'?')+'action='+action+'&id='+encodeURIComponent(id)+'&token='+encodeURIComponent(DRIVE_CFG.token||'');
+  const j=await (await fetch(u)).json();
+  if(!j.ok) throw new Error(j.error||'Apps Script ผิดพลาด');
+  return j;
+}
+function b64ToBuf(b64){ const bin=atob(b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u.buffer; }
+async function driveLoad(id){
+  if(DRIVE_CACHE[id]) return DRIVE_CACHE[id];
+  if(DRIVE_PENDING[id]) return DRIVE_PENDING[id];
+  const useGas = !DRIVE_TOKEN && !DRIVE_CFG.key && !!DRIVE_CFG.script;
+  if(!DRIVE_TOKEN && !DRIVE_CFG.key && !DRIVE_CFG.script) throw new Error('nocfg');
+  return DRIVE_PENDING[id]=(async()=>{
+    let mt, preBuf=null;
+    if(useGas){ const j=await gas(id,'file'); mt=j.mimeType||''; preBuf=b64ToBuf(j.b64); }
+    else { mt=(await (await driveFetch('files/'+id+'?fields=mimeType,name&supportsAllDrives=true')).json()).mimeType||''; }
+    const media=async()=> preBuf || await (await driveFetch('files/'+id+'?alt=media&supportsAllDrives=true')).arrayBuffer();
+    let out;
+    if(mt==='application/pdf'){
+      out=await pdfFromBuffer(await media());
+    } else if(mt.indexOf('application/vnd.google-apps.')===0){
+      out=await pdfFromBuffer(await (await driveFetch('files/'+id+'/export?mimeType=application/pdf')).arrayBuffer());
+    } else if(mt.indexOf('wordprocessingml')>=0){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+      const res=await mammoth.convertToHtml({arrayBuffer:await media()});
+      const m=res.value.match(/<img[^>]+src="(data:image[^"]+)"/);
+      out={kind:'docx', html:res.value, thumb: m?m[1]:textCard('เอกสาร Word',res.value.replace(/<[^>]+>/g,' '))};
+    } else if(mt.indexOf('image/')===0){
+      const u=URL.createObjectURL(new Blob([await media()],{type:mt})); out={kind:'image', url:u, thumb:u};
+    } else if(mt==='application/msword'){
+      out={kind:'none', thumb:textCard('ไฟล์ .doc (Word เก่า)','แสดงตัวอย่างไม่ได้ กรุณาบันทึกเป็น .docx หรือ PDF')};
+    } else throw new Error('ชนิดไฟล์ไม่รองรับ: '+mt);
+    return DRIVE_CACHE[id]=out;
+  })().finally(()=>{ delete DRIVE_PENDING[id]; });
+}
+async function enhancePhoto(sp){
+  const a=sp.closest('a'), id=a&&a.getAttribute('data-id');
+  if(!id || (!DRIVE_TOKEN && !DRIVE_CFG.key && !DRIVE_CFG.script)) return;
+  const small=!!sp.closest('.photo-strip.sm'), old=sp.innerHTML;
+  sp.textContent='⏳ กำลังโหลด…';
+  try{
+    let src;
+    if(!DRIVE_TOKEN && !DRIVE_CFG.key && DRIVE_CFG.script && !DRIVE_CACHE[id]){
+      const j=await gas(id,'thumb');
+      if(j.thumb){ src=j.thumb; a.setAttribute('data-gas','1'); } else src=(await driveLoad(id)).thumb;
+    } else src=(await driveLoad(id)).thumb;
+    const im=document.createElement('img');
+    im.src=src; im.alt='ตัวอย่างเอกสาร'; im.setAttribute('data-alts','[]');
+    sp.replaceWith(im);
+  }catch(e){
+    sp.innerHTML=old; sp.title='โหลดตัวอย่างไม่สำเร็จ: '+e.message;
+  }
+}
+function renderCachedDoc(box,c){
+  box.style.cssText='width:min(96vw,1100px);height:calc(100vh - 80px);overflow:auto;background:#fff;border-radius:10px;display:block;';
+  box.innerHTML='';
+  if(c.kind==='pdf'){
+    const n=Math.min(c.doc.numPages,20);
+    (async()=>{ for(let i=1;i<=n;i++){
+      const pg=await c.doc.getPage(i), vp=pg.getViewport({scale:1.6}), cv=document.createElement('canvas');
+      cv.width=vp.width; cv.height=vp.height; cv.style.cssText='width:100%;display:block;border-bottom:6px solid #ddd;';
+      box.appendChild(cv); await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise; } })();
+  } else if(c.kind==='docx'){
+    const d=document.createElement('div'); d.style.cssText='padding:24px 32px;color:#111;font:15px/1.6 sans-serif;'; d.innerHTML=c.html;
+    d.querySelectorAll('img').forEach(i=>i.style.maxWidth='100%'); box.appendChild(d);
+  } else { const im=document.createElement('img'); im.src=c.url; im.style.cssText='max-width:100%;display:block;margin:auto;'; box.appendChild(im); }
+}
+function openDriveCfg(){
+  const old=document.getElementById('driveCfg'); if(old) old.remove();
+  const ov=document.createElement('div'); ov.id='driveCfg';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483001;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:14px;';
+  ov.innerHTML=`<div style="background:#fff;color:#111;border-radius:14px;padding:18px 20px;width:min(92vw,520px);font:14px/1.5 sans-serif;max-height:90vh;overflow:auto">
+    <b style="font-size:16px">ตั้งค่าการดึงตัวอย่างจาก Google Drive</b>
+    <p style="margin:8px 0;color:#444">ใช้แสดงรูปตัวอย่างของไฟล์ PDF / Word ในตารางและบนหมุดแผนที่ เลือกอย่างใดอย่างหนึ่ง (ถ้ากรอกหลายแบบ จะใช้ API Key/OAuth ก่อน)</p>
+    <label><b>แบบแนะนำ: Google Apps Script</b> (ไม่ต้องเปิดไฟล์สาธารณะ)</label>
+    <input id="dcScript" style="width:100%;padding:8px;margin:4px 0 6px;border:1px solid #bbb;border-radius:8px" placeholder="https://script.google.com/macros/s/.../exec" value="${escapeHtml(DRIVE_CFG.script||'')}">
+    <input id="dcToken" style="width:100%;padding:8px;margin:0 0 12px;border:1px solid #bbb;border-radius:8px" placeholder="รหัสลับ (TOKEN ในสคริปต์)" value="${escapeHtml(DRIVE_CFG.token||'')}">
+    <label><b>แบบ A: API Key</b> (ไฟล์ต้องแชร์เป็น “ทุกคนที่มีลิงก์”)</label>
+    <input id="dcKey" style="width:100%;padding:8px;margin:4px 0 10px;border:1px solid #bbb;border-radius:8px" placeholder="AIza..." value="${escapeHtml(DRIVE_CFG.key||'')}">
+    <label><b>แบบ B: OAuth Client ID</b> (ล็อกอินด้วยบัญชี Google — ต้องเปิดหน้านี้จากเว็บ https)</label>
+    <input id="dcClient" style="width:100%;padding:8px;margin:4px 0 10px;border:1px solid #bbb;border-radius:8px" placeholder="xxxx.apps.googleusercontent.com" value="${escapeHtml(DRIVE_CFG.client||'')}">
+    <div id="dcMsg" style="min-height:20px;color:#0a6;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="dcSave" style="background:#2b5797;color:#fff;border:0;border-radius:999px;padding:8px 16px;font-weight:600;cursor:pointer">บันทึก</button>
+      <button id="dcConnect" style="background:#fff;border:1px solid #2b5797;color:#2b5797;border-radius:999px;padding:8px 16px;font-weight:600;cursor:pointer">เชื่อมต่อ Google</button>
+      <button id="dcClose" style="background:#eee;border:0;border-radius:999px;padding:8px 16px;cursor:pointer;margin-left:auto">ปิด</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const msg=t=>{ ov.querySelector('#dcMsg').textContent=t; };
+  const save=()=>{ DRIVE_CFG={key:ov.querySelector('#dcKey').value.trim(), client:ov.querySelector('#dcClient').value.trim(), script:ov.querySelector('#dcScript').value.trim(), token:ov.querySelector('#dcToken').value.trim()};
+    try{ localStorage.setItem(DRIVE_CFG_KEY, JSON.stringify(DRIVE_CFG)); }catch(e){}
+    document.querySelectorAll('.photo-fail').forEach(enhancePhoto); msg('บันทึกแล้ว'); };
+  ov.querySelector('#dcSave').onclick=save;
+  ov.querySelector('#dcClose').onclick=()=>ov.remove();
+  ov.querySelector('#dcConnect').onclick=async()=>{
+    save(); if(!DRIVE_CFG.client){ msg('กรุณากรอก Client ID ก่อน'); return; }
+    try{
+      await loadScript('https://accounts.google.com/gsi/client');
+      google.accounts.oauth2.initTokenClient({client_id:DRIVE_CFG.client, scope:'https://www.googleapis.com/auth/drive.readonly',
+        callback:r=>{ if(r&&r.access_token){ DRIVE_TOKEN=r.access_token; msg('เชื่อมต่อสำเร็จ'); document.querySelectorAll('.photo-fail').forEach(enhancePhoto); } else msg('เชื่อมต่อไม่สำเร็จ'); }
+      }).requestAccessToken();
+    }catch(e){ msg('เชื่อมต่อไม่ได้: '+e.message); }
+  };
+}
+function openPhotoViewer(a, e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  const id = a.getAttribute('data-id'), img = a.querySelector('img');
+  if(!img && !id){ window.open(a.href,'_blank','noopener'); return false; }
+  const old = document.getElementById('photoViewer'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id='photoViewer';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:8px;';
+  const bar = document.createElement('div');
+  bar.style.cssText='display:flex;gap:10px;align-self:flex-end;';
+  const mk=(t,fn,href)=>{ const b=document.createElement(href?'a':'button'); b.textContent=t; if(href){b.href=href;b.target='_blank';b.rel='noopener';} else b.onclick=fn;
+    b.style.cssText='background:#fff;color:#111;border:0;border-radius:999px;padding:7px 14px;font:600 13px sans-serif;cursor:pointer;text-decoration:none;'; return b; };
+  bar.appendChild(mk('เปิดใน Drive ↗',null,a.href)); bar.appendChild(mk('✕ ปิด',()=>ov.remove()));
+  const box = document.createElement('div');
+  box.style.cssText='width:min(96vw,1100px);height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;';
+  function showFrame(){
+    box.innerHTML=''; if(!id){ box.innerHTML='<span style="color:#fff">ไม่สามารถแสดงไฟล์นี้ได้</span>'; return; }
+    const f=document.createElement('iframe'); f.src='https://drive.google.com/file/d/'+id+'/preview'; f.allow='autoplay';
+    f.style.cssText='width:100%;height:100%;border:0;border-radius:10px;background:#fff;'; box.appendChild(f);
+  }
+  if(id && DRIVE_CACHE[id] && DRIVE_CACHE[id].kind!=='none'){ renderCachedDoc(box, DRIVE_CACHE[id]); }
+  else if(id && a.getAttribute('data-gas') && DRIVE_CFG.script){
+    box.innerHTML='<span style="color:#fff;font:15px sans-serif">⏳ กำลังโหลดเอกสาร…</span>';
+    driveLoad(id).then(c=>{ if(c.kind==='none') showFrame(); else renderCachedDoc(box,c); }).catch(()=>showFrame());
+  }
+  else if(img){
+    const im=document.createElement('img'); im.src=img.src.replace(/sz=w\d+/,'sz=w2000');
+    im.style.cssText='max-width:100%;max-height:100%;border-radius:10px;background:#fff;object-fit:contain;';
+    im.onerror=showFrame; box.appendChild(im);
+  } else showFrame();
+  ov.appendChild(bar); ov.appendChild(box);
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.addEventListener('keydown',function k(ev){ if(ev.key==='Escape'){ ov.remove(); document.removeEventListener('keydown',k); } });
+  document.body.appendChild(ov);
+  return false;
+}
+function photoFallback(img){
+  let a=[]; try{ a=JSON.parse(img.getAttribute('data-alts')||'[]'); }catch(e){}
+  if(a.length){ img.setAttribute('data-alts', JSON.stringify(a.slice(1))); img.src=a[0]; return; }
+  const sp=document.createElement('span'); sp.className='photo-fail';
+  sp.innerHTML = img.closest('.photo-strip.sm') ? '📄 ดูเอกสาร' : '📄 คลิกเพื่อดูตัวอย่างเอกสาร<br><small>(PDF / Word / ไฟล์ที่ Drive ไม่มีรูปย่อ)</small>';
+  img.replaceWith(sp);
+  enhancePhoto(sp);
+}
+function photosHtml(r, size){
+  const ph = r && r.photos || [];
+  if(!ph.length) return '';
+  const max = size==='sm' ? 1 : 6;
+  const imgs = ph.slice(0,max).map(p=>
+    `<a href="${escapeHtml(p.href)}" target="_blank" rel="noopener" data-id="${escapeHtml(p.id||'')}" onclick="return openPhotoViewer(this,event)" title="คลิกเพื่อดูเต็มหน้าจอ">`+
+    `<img loading="lazy" referrerpolicy="no-referrer" src="${escapeHtml(p.src)}" alt="ภาพการเข้าตรวจสอบ" `+
+    `data-alts="${escapeHtml(JSON.stringify(p.alts||[]))}" onerror="photoFallback(this)"></a>`).join('');
+  const more = size==='sm' && ph.length>1 ? `<span style="font-size:11px;align-self:center">+${ph.length-1}</span>` : '';
+  return `<div class="photo-strip ${size||'md'}">${imgs}${more}</div>`;
+}
+
 function transformRawRows(rows){
   const out = [];
   for(let i=1;i<rows.length;i++){
@@ -1114,7 +1330,8 @@ function transformRawRows(rows){
         moo: r[5]||'', tambon: r[6]||'', amphoe: r[7]||'', province: r[8]||'',
         lat: parseNum(r[9]), lng: parseNum(r[10]),
         wasteType: r[11]||'', operation: r[12]||'', status: r[13]||'',
-        legalDetail: r[14]||'', agency: r[15]||'', note: r[16]||''
+        legalDetail: r[14]||'', agency: r[15]||'', note: r[16]||'',
+        photos: parsePhotos(r[32], r[33])
       };
     } else {
       rec = {
@@ -1123,7 +1340,8 @@ function transformRawRows(rows){
         moo: r[20]||'', tambon: r[21]||'', amphoe: r[22]||'', province: r[23]||'',
         lat: parseNum(r[24]), lng: parseNum(r[25]),
         wasteType: r[26]||'', operation: r[27]||'', status: r[28]||'',
-        legalDetail: r[29]||'', agency: r[30]||'', note: r[31]||''
+        legalDetail: r[29]||'', agency: r[30]||'', note: r[31]||'',
+        photos: parsePhotos(r[32], r[33])
       };
     }
     out.push(rec);
@@ -1149,7 +1367,9 @@ const HEADER_ALIASES = {
   status:      ['status','สถานะ','สถานะคดี'],
   legalDetail: ['legaldetail','รายละเอียดทางกฎหมาย','ข้อกฎหมาย','การดำเนินคดี'],
   agency:      ['agency','หน่วยงาน','หน่วยงานที่รับผิดชอบ'],
-  note:        ['note','หมายเหตุ']
+  note:        ['note','หมายเหตุ'],
+  photos:      ['photos','photo','ภาพ','รูปภาพ','ภาพการเข้าตรวจสอบ','ลิงก์ภาพ'],
+  photos2:     ['photos2','ภาพการเข้าตรวจสอบ2']
 };
 function normHeaderText(s){
   return String(s||'').trim().toLowerCase().replace(/[\s._\-\/()]/g, '');
@@ -1181,7 +1401,8 @@ function transformStandardRows(data){
     status: row.status || '',
     legalDetail: row.legalDetail || '',
     agency: row.agency || '',
-    note: row.note || ''
+    note: row.note || '',
+    photos: parsePhotos(row.photos, row.photos2)
   }));
 }
 
@@ -1864,10 +2085,10 @@ const LeafletMap = (function(){
       const aa=ampOf(r)||cl(r.amphoe)||'-'; const k=(r.province||'')+'|'+aa; const o=g[k]=g[k]||{n:0,la:0,ln:0,name:aa};
       o.n++; o.la+=r.lat; o.ln+=r.lng;
     });
-    const arr = Object.values(g), mx = Math.max(0,...arr.map(o=>o.n)), b = bins(mx), rad=[4,6,9,12];
+    const arr = Object.values(g), mx = Math.max(0,...arr.map(o=>o.n)), b = bins(mx), rad=[4,6,9,12], cols=['#8e24c7','#8e24c7','#8e24c7','#8e24c7'];
     const idx = n => n>b[2]?3:n>b[1]?2:n>b[0]?1:0;
     arr.forEach(o=>{
-      L.circleMarker([o.la/o.n,o.ln/o.n],{radius:rad[idx(o.n)],color:'#5b1a8f',weight:1,fillColor:'#8e24c7',fillOpacity:.85})
+      L.circleMarker([o.la/o.n,o.ln/o.n],{radius:rad[idx(o.n)],color:'#5b1a8f',weight:1,fillColor:cols[idx(o.n)],fillOpacity:.85})
         .bindTooltip('อ.'+o.name+' — โรงงาน '+o.n+' แห่ง').addTo(thematicLayer);
     });
     const lab=[`0 - ${b[0]}`,`${b[0]+1} - ${b[1]}`,`${b[1]+1} - ${b[2]}`,`> ${b[2]}`];
@@ -1879,7 +2100,7 @@ const LeafletMap = (function(){
       const ttl='text-align:center;font-weight:700;line-height:1.3;margin-bottom:6px;';
       const box=(bd)=>`<i style="display:inline-block;width:34px;height:14px;border:${bd};vertical-align:middle;margin-right:8px"></i>`;
       const sw=(c,bc)=>`<i style="display:inline-block;width:34px;height:14px;background:${c};border:1.5px solid ${bc};vertical-align:middle;margin-right:14px"></i>`;
-      const dots=lab.map((t,i)=>`<div style="height:22px;display:flex;align-items:center"><span style="width:26px;display:flex;justify-content:center;margin-right:12px"><span style="width:${rad[i]*2}px;height:${rad[i]*2}px;border-radius:50%;background:#8e24c7"></span></span>${t}</div>`).join('');
+      const dots=lab.map((t,i)=>`<div style="height:22px;display:flex;align-items:center"><span style="width:26px;display:flex;justify-content:center;margin-right:12px"><span style="width:${rad[i]*2}px;height:${rad[i]*2}px;border-radius:50%;background:${cols[i]}"></span></span>${t}</div>`).join('');
       d.innerHTML=
         `<div style="${col}"><div style="${ttl};font-size:15px">คำอธิบายสัญลักษณ์</div>`+
         `<div style="margin:5px 0">${box('1.5px dotted #000')}ขอบเขตอำเภอ</div>`+
@@ -1900,7 +2121,7 @@ const LeafletMap = (function(){
     ensureBuilt();
     thematic = !thematic;
     const c = map.getContainer();
-    if(thematic){ tileLayers.forEach(l=>map.removeLayer(l)); markersLayer.remove(); c.style.background='#fff'; }
+    if(thematic){ tileLayers.forEach(l=>map.removeLayer(l)); markersLayer.remove(); c.style.background='#d9d9d9'; }
     else { tileLayers.forEach(l=>{l.addTo(map);l.bringToBack();}); markersLayer.addTo(map); c.style.background=''; }
     const btn=document.getElementById('thematicBtn');
     if(btn) btn.textContent = thematic ? '↩ กลับแผนที่ปกติ' : '🗺️ แผนที่ธีม (สไตล์รายงาน)';
@@ -1973,7 +2194,7 @@ const LeafletMap = (function(){
     const approxNote = r.approxLocation
       ? `<div style="margin-top:4px;font-size:11px;color:var(--ink-faint);">⚠ ไม่มีพิกัดจริง หรือพิกัดที่มีอยู่ไม่ตรงกับจังหวัดที่ระบุ — แสดงตำแหน่งโดยประมาณกลางจังหวัดแทน</div>`
       : '';
-    return `<div class="map-popup"><b>${escapeHtml(r.caseName||'(ไม่ระบุชื่อ)')}</b>` +
+    return `<div class="map-popup">${photosHtml(r,'md')}<b>${escapeHtml(r.caseName||'(ไม่ระบุชื่อ)')}</b>` +
       `<span class="popup-province" style="border-color:${pColor};color:${pColor}">` +
       `<span class="dot" style="background:${pColor}"></span>${escapeHtml(r.province||'ไม่ระบุจังหวัด')}</span><br>` +
       `${escapeHtml(r.tambon)} · ${escapeHtml(r.amphoe)}<br>` +
@@ -1992,7 +2213,7 @@ const LeafletMap = (function(){
     pts.forEach(r=>{
       const bucket = STATUS_BUCKET(r.status);
       const marker = L.marker([r.lat, r.lng], {icon: markerIcon(r, bucket)});
-      marker.bindPopup(popupHtml(r));
+      marker.bindPopup(popupHtml(r), {maxWidth:300, minWidth:200});
       marker.addTo(markersLayer);
       latlngs.push([r.lat, r.lng]);
       const key = rowKey(r);
@@ -2294,6 +2515,7 @@ function renderTable(){
       <td title="${escapeHtml(r.wasteType||'')}">${escapeHtml((r.wasteType||'-').slice(0,40))}${(r.wasteType||'').length>40?'…':''}</td>
       <td><span class="pill ${bucket}">${STATUS_LABEL[bucket]}</span></td>
       <td>${escapeHtml(r.agency||'-')}</td>
+      <td>${photosHtml(r,'sm')||'-'}</td>
       <td>
         <button type="button" class="btn-locate" data-locate="${idx}" ${r.lat==null||r.lng==null?'disabled':''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
@@ -2301,7 +2523,7 @@ function renderTable(){
         </button>
       </td>
     </tr>
-    <tr class="detail-row" data-detail="${idx}" style="display:none;"><td colspan="9">
+    <tr class="detail-row" data-detail="${idx}" style="display:none;"><td colspan="10">
       <div class="detail-grid">
         <div><span class="k">ลำดับที่โรงงาน / ประเภทพื้นที่</span><span class="v">${escapeHtml(r.locationType||'-')}</span></div>
         <div><span class="k">หมู่ที่</span><span class="v">${escapeHtml(r.moo||'-')}</span></div>
@@ -2312,6 +2534,7 @@ function renderTable(){
         <div><span class="k">หมายเหตุ</span><span class="v">${escapeHtml(r.note||'-')}</span></div>
         <div><span class="k">พิกัด</span><span class="v">${r.lat!=null?r.lat.toFixed(5):'-'}, ${r.lng!=null?r.lng.toFixed(5):'-'}${r.approxLocation?' <em style="color:var(--ink-faint);font-style:normal;">(ตำแหน่งโดยประมาณ กลาง'+escapeHtml(r.province||'จังหวัด')+' — ไม่มีพิกัดจริง หรือพิกัดเดิมไม่ตรงกับจังหวัดที่ระบุ)</em>':''}</span></div>
       </div>
+      ${(r.photos&&r.photos.length)?`<div style="margin-top:10px"><span class="k">ภาพการเข้าตรวจสอบ (${r.photos.length})</span>${photosHtml(r,'lg')}</div>`:''}
     </td></tr>`;
   }).join('');
 
