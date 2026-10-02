@@ -216,11 +216,13 @@
   .filters h2 svg{width:16px;height:16px;color:var(--primary);}
   .filter-group{margin-bottom:18px;}
   .filter-group label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:500;}
-  .filter-group select, .filter-group input[type="text"]{
+  .filter-group select, .filter-group input[type="text"], .filter-group input[type="date"]{
     width:100%;padding:9px 11px;border-radius:var(--radius-sm);
     border:1px solid var(--line);background:var(--surface-2);
     color:var(--ink);font-family:var(--font-body);font-size:13.5px;
   }
+  .date-range{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .date-range small{display:block;font-size:11px;color:var(--ink-soft);margin:0 0 3px;}
   .filter-group select:focus, .filter-group input:focus{outline:2px solid var(--primary);outline-offset:1px;}
   .chip-row{display:flex;flex-wrap:wrap;gap:7px;}
   .chip{
@@ -721,6 +723,18 @@
     </div>
 
     <div class="filter-group">
+      <label>วันที่เข้าตรวจสอบ</label>
+      <div class="chip-row" id="chipDateMode" style="margin-bottom:8px">
+        <button type="button" class="chip active" data-mode="range">ช่วงวันที่</button>
+        <button type="button" class="chip" data-mode="single">วันเดียว</button>
+      </div>
+      <div class="date-range" id="dateRangeBox">
+        <div><small id="dateFromLabel">ตั้งแต่</small><input type="date" id="fDateFrom"></div>
+        <div id="dateToWrap"><small>ถึง</small><input type="date" id="fDateTo"></div>
+      </div>
+    </div>
+
+    <div class="filter-group">
       <label for="fSearch">ค้นหาชื่อกรณี / โรงงาน</label>
       <input type="text" id="fSearch" placeholder="พิมพ์คำค้นหา...">
     </div>
@@ -881,7 +895,7 @@
           <table class="case-table">
             <thead>
               <tr>
-                <th>วันที่</th><th>ประเภท</th><th>ลักษณะ</th><th>ชื่อกรณี / โรงงาน</th>
+                <th>วันที่เข้าตรวจสอบ</th><th>ประเภท</th><th>ลักษณะ</th><th>ชื่อกรณี / โรงงาน</th>
                 <th>ตำบล / อำเภอ</th><th>ประเภทของเสีย</th><th>สถานะ</th><th>หน่วยงาน</th><th>ภาพ</th><th>แผนที่</th>
               </tr>
             </thead>
@@ -1320,7 +1334,7 @@ function transformRawRows(rows){
     if(caseTypeRaw.indexOf('ลักลอบ') !== -1){
       rec = {
         timestamp: ts, caseType:'dumping',
-        locationType: r[2]||'', inspectDate: ts, caseName: r[4]||'',
+        locationType: r[2]||'', inspectDate: normalizeTs(r[3]), caseName: r[4]||'',
         moo: r[5]||'', tambon: r[6]||'', amphoe: r[7]||'', province: r[8]||'',
         lat: parseNum(r[9]), lng: parseNum(r[10]),
         wasteType: r[11]||'', operation: r[12]||'', status: r[13]||'',
@@ -1330,7 +1344,7 @@ function transformRawRows(rows){
     } else {
       rec = {
         timestamp: ts, caseType:'factory',
-        locationType: r[17]||'', inspectDate: ts, caseName: r[19]||'',
+        locationType: r[17]||'', inspectDate: normalizeTs(r[18]), caseName: r[19]||'',
         moo: r[20]||'', tambon: r[21]||'', amphoe: r[22]||'', province: r[23]||'',
         lat: parseNum(r[24]), lng: parseNum(r[25]),
         wasteType: r[26]||'', operation: r[27]||'', status: r[28]||'',
@@ -1348,7 +1362,7 @@ const HEADER_ALIASES = {
   timestamp:   ['timestamp','วันที่บันทึก','วันที่แจ้ง','วันเวลาที่บันทึก','เวลาบันทึก','วันที่'],
   caseType:    ['casetype','ประเภทกรณี','ประเภท'],
   locationType:['locationtype','ลำดับที่','ประเภทสถานที่','ลักษณะสถานที่'],
-  inspectDate: ['inspectdate','วันที่ตรวจสอบ','วันตรวจสอบ','วันที่เข้าตรวจ'],
+  inspectDate: ['inspectdate','วันที่ตรวจสอบ','วันตรวจสอบ','วันที่เข้าตรวจ','วันที่เข้าตรวจสอบ','วันที่/เดือน/ปี ที่เข้าตรวจสอบ'],
   caseName:    ['casename','ชื่อกรณี','ชื่อโรงงาน','ชื่อสถานประกอบการ','ชื่อบริษัท','ชื่อผู้ประกอบการ'],
   moo:         ['moo','หมู่','หมู่ที่'],
   tambon:      ['tambon','ตำบล','ตำบล/แขวง'],
@@ -1382,7 +1396,7 @@ function transformStandardRows(data){
     timestamp: normalizeTs(row.timestamp || ''),
     caseType: String(row.caseType || 'factory').trim(),
     locationType: row.locationType || '',
-    inspectDate: normalizeTs(row.timestamp || ''),
+    inspectDate: normalizeTs(row.inspectDate || row.timestamp || ''),
     caseName: row.caseName || '',
     moo: row.moo || '',
     tambon: row.tambon || '',
@@ -1864,6 +1878,55 @@ function searchHaystack(r){
     r.legalDetail, r.agency, r.note, r.locationType].join(' ').toLowerCase();
 }
 
+// ---------- กรองตามวันที่ (อ่านได้ทั้ง 2026-09-30, 30/9/2026 และปี พ.ศ.) ----------
+let DATE_ORDER = null; // 'dmy' | 'mdy' ตรวจจากข้อมูลจริง
+function detectDateOrder(){
+  let dmy=false, mdy=false;
+  for(const r of RAW){
+    const m=String(r.inspectDate||'').match(/^(\d{1,2})\/(\d{1,2})\/\d{4}/);
+    if(!m) continue;
+    if(+m[1]>12) dmy=true; if(+m[2]>12) mdy=true;
+    if(dmy||mdy) break;
+  }
+  return mdy && !dmy ? 'mdy' : 'dmy';
+}
+function recordDay(r){
+  if(r._day!==undefined) return r._day;
+  const t=String(r.inspectDate||'').trim(); let y,mo,d,out='';
+  let m;
+  if(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(t)){ const dt=new Date(t); y=dt.getFullYear(); mo=dt.getMonth()+1; d=dt.getDate(); } // วันที่จากไฟล์ Excel (UTC) แปลงเป็นเวลาท้องถิ่น
+  else if((m=t.match(/^(\d{4})-(\d{2})-(\d{2})/))){ y=+m[1]; mo=+m[2]; d=+m[3]; }
+  else if((m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))){
+    if(!DATE_ORDER) DATE_ORDER=detectDateOrder();
+    if(DATE_ORDER==='mdy'){ mo=+m[1]; d=+m[2]; } else { d=+m[1]; mo=+m[2]; }
+    y=+m[3];
+  }
+  if(y){
+    if(y>2400) y-=543;
+    if(y>=1900 && mo>=1 && mo<=12 && d>=1 && d<=31) out=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }
+  return r._day=out;
+}
+let DATE_MODE='range';
+function setDateMode(mode){
+  DATE_MODE=mode;
+  document.querySelectorAll('#chipDateMode .chip').forEach(c=>c.classList.toggle('active', c.dataset.mode===mode));
+  const single = mode==='single';
+  document.getElementById('dateToWrap').style.display = single ? 'none' : '';
+  document.getElementById('dateRangeBox').style.gridTemplateColumns = single ? '1fr' : '';
+  document.getElementById('dateFromLabel').textContent = single ? 'เลือกวันที่' : 'ตั้งแต่';
+  if(!single) document.getElementById('fDateTo').value = '';
+}
+function passDate(r){
+  const f=document.getElementById('fDateFrom').value;
+  const t=DATE_MODE==='single' ? f : document.getElementById('fDateTo').value;
+  if(!f && !t) return true;
+  const day=recordDay(r); if(!day) return false;
+  if(f && day<f) return false;
+  if(t && day>t) return false;
+  return true;
+}
+
 function applyFilters(){
   const search = document.getElementById('fSearch').value.trim().toLowerCase();
   const tableSearch = document.getElementById('tableSearch').value.trim().toLowerCase();
@@ -1871,6 +1934,7 @@ function applyFilters(){
   filtered = RAW.filter(r=>{
     if(activeCaseTypes.length && !activeCaseTypes.includes(r.caseType)) return false;
     if(activeKinds.length && !activeKinds.includes(r.recordKind)) return false;
+    if(!passDate(r)) return false;
     if(activeStatuses.length && !activeStatuses.includes(STATUS_BUCKET(r.status))) return false;
     if(selectedProvinces.size && !selectedProvinces.has(r.province)) return false;
     if(selectedAmphoes.size && !selectedAmphoes.has(r.amphoe)) return false;
@@ -1902,6 +1966,7 @@ function computeCaseTypeCounts(){
   const tableSearch = document.getElementById('tableSearch').value.trim().toLowerCase();
   const base = RAW.filter(r=>{
     if(activeKinds.length && !activeKinds.includes(r.recordKind)) return false;
+    if(!passDate(r)) return false;
     if(activeStatuses.length && !activeStatuses.includes(STATUS_BUCKET(r.status))) return false;
     if(selectedProvinces.size && !selectedProvinces.has(r.province)) return false;
     if(selectedAmphoes.size && !selectedAmphoes.has(r.amphoe)) return false;
@@ -2493,7 +2558,7 @@ function renderTable(){
     return;
   }
   empty.style.display = 'none';
-  const sorted = filtered.slice().sort((a,b)=> String(b.timestamp).localeCompare(String(a.timestamp)));
+  const sorted = filtered.slice().sort((a,b)=> (recordDay(b)||'').localeCompare(recordDay(a)||'') || String(b.timestamp).localeCompare(String(a.timestamp)));
   body.innerHTML = sorted.map((r, idx) => {
     const bucket = STATUS_BUCKET(r.status);
     const kind = r.recordKind === 'incident' ? 'incident' : 'registry';
@@ -2501,7 +2566,7 @@ function renderTable(){
     const inspectDateStr = String(r.inspectDate||'');
     const inspectDateOk = inspectDateStr && inspectDateStr.indexOf('0001') === -1;
     return `<tr data-idx="${idx}">
-      <td>${escapeHtml(r.timestamp).slice(0,10)}</td>
+      <td>${escapeHtml(recordDay(r) || String(r.timestamp).slice(0,10))}</td>
       <td><span class="type-tag">${r.caseType==='dumping'?'ลักลอบทิ้ง':'โรงงาน'}</span></td>
       <td><span class="kind-tag ${kind}">${KIND_LABEL[r.recordKind]||'-'}</span></td>
       <td>${escapeHtml(r.caseName||'-')}</td>
@@ -2569,6 +2634,12 @@ document.getElementById('chipKind').addEventListener('click', (e)=>{
   applyFilters();
 });
 document.getElementById('fSearch').addEventListener('input', applyFilters);
+document.getElementById('chipDateMode').addEventListener('click', e=>{
+  const c=e.target.closest('.chip'); if(!c || c.dataset.mode===DATE_MODE) return;
+  setDateMode(c.dataset.mode); applyFilters();
+});
+document.getElementById('fDateFrom').addEventListener('change', applyFilters);
+document.getElementById('fDateTo').addEventListener('change', applyFilters);
 document.getElementById('tableSearch').addEventListener('input', applyFilters);
 document.getElementById('wasteTopN').addEventListener('change', renderCharts);
 document.getElementById('amphoeTopN').addEventListener('change', renderCharts);
@@ -2581,6 +2652,7 @@ document.getElementById('resetFilters').addEventListener('click', ()=>{
   renderChipGroup('chipKind', 'kind', activeKinds);
   selectedProvinces.clear(); selectedAmphoes.clear(); selectedTambons.clear(); selectedAgencies.clear();
   document.getElementById('fSearch').value=''; document.getElementById('tableSearch').value='';
+  document.getElementById('fDateFrom').value=''; document.getElementById('fDateTo').value=''; setDateMode('range');
   rebuildFilterOptions(); applyFilters();
 });
 document.getElementById('resetSourceBtn').addEventListener('click', ()=>{
