@@ -194,6 +194,45 @@
   .kpi-num{font-family:var(--font-display);font-weight:600;font-size:24px;line-height:1;}
   .kpi-lbl{font-size:12px;color:var(--ink-soft);margin-top:5px;}
 
+  /* ---------- KPI bento ---------- */
+  .kpi-bento{max-width:1440px;margin:22px auto 0;padding:0 clamp(16px,3vw,32px);}
+  .kpi-all{
+    border-radius:28px;padding:12px;
+    background:color-mix(in srgb, var(--ink-soft) 7%, var(--surface));
+    border:1px solid color-mix(in srgb, var(--ink-soft) 14%, transparent);
+    display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:12px;align-items:stretch;
+    position:relative;
+  }
+  @media (max-width:1100px){.kpi-all{grid-template-columns:1fr;}}
+  .kpi-eq{
+    grid-column:2 / -1;font-size:12px;color:var(--ink-soft);
+    padding:0 6px;margin:0 0 -4px;
+  }
+  @media (max-width:1100px){.kpi-eq{grid-column:1;}}
+  .kpi-group{border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .kpi-group.g-factory{background:color-mix(in srgb, var(--primary-2) 9%, var(--surface));}
+  .kpi-group.g-dumping{background:color-mix(in srgb, var(--alert) 8%, var(--surface));}
+  .kpi-group .kpi-main{flex:1;}
+  .kpi-subs{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .kpi-sub{padding:12px 14px;display:flex;align-items:center;gap:11px;}
+  .kpi-sub .kpi-icon{width:34px;height:34px;border-radius:10px;}
+  .kpi-sub .kpi-icon svg{width:17px;height:17px;}
+  .kpi-sub .kpi-num{font-size:20px;}
+  .kpi-main{padding:20px;display:flex;align-items:center;gap:15px;}
+  .kpi-main .kpi-num{font-size:38px;}
+  .kpi-main .kpi-lbl{font-size:14px;}
+  .kpi-main .kpi-icon{width:56px;height:56px;border-radius:16px;}
+  .kpi-main .kpi-icon svg{width:26px;height:26px;}
+  .kpi-total{display:flex;gap:14px;padding:16px;align-items:center;flex-wrap:wrap;grid-row:1 / span 2;}
+  @media (max-width:1100px){.kpi-total{grid-row:auto;}}
+  .kpi-total .kpi-main{padding:6px;flex:1 1 220px;}
+  .kpi-minis{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1 1 260px;}
+  .kpi-mini{padding:9px 11px;display:flex;align-items:center;gap:9px;border-radius:14px;border:1px solid var(--line, rgba(0,0,0,.08));background:var(--surface);}
+  .kpi-mini .kpi-icon{width:28px;height:28px;border-radius:8px;}
+  .kpi-mini .kpi-icon svg{width:14px;height:14px;}
+  .kpi-mini .kpi-num{font-size:16px;}
+  .kpi-mini .kpi-lbl{font-size:11px;margin-top:2px;}
+
   /* ---------- Layout ---------- */
   .layout{
     max-width:1440px;margin:26px auto 0;
@@ -620,7 +659,7 @@
   <p>ติดตามตำแหน่ง สถานะคดี และแนวโน้มของกรณีที่รายงานเข้ามา อัปเดตอัตโนมัติเมื่อเชื่อมกับ Google Sheet</p>
 </div>
 
-<div class="kpi-grid" id="statStrip"></div>
+<div class="kpi-bento" id="statStrip"></div>
 
 <div class="layout">
   <aside class="filters card">
@@ -2005,19 +2044,40 @@ function renderStats(){
   const districts = new Set(filtered.map(r=>r.amphoe).filter(Boolean)).size;
   const incidents = filtered.filter(r=>r.recordKind==='incident').length;
 
-  const stats = [
-    [total, 'กรณีทั้งหมด', ICONS.total, 'var(--primary-soft)', 'var(--primary)', null],
-    [factory, 'โรงงาน/สถานประกอบการ', ICONS.factory, 'var(--primary-soft)', 'var(--primary-2)', {kind:'registry'}],
-    [dumping, 'ลักลอบทิ้งของเสีย', ICONS.dumping, 'var(--alert-soft)', 'var(--alert)', {caseType:'dumping'}],
-    [legalAction, 'อยู่ระหว่าง/ดำเนินคดี', ICONS.legal, 'var(--progress-soft)', 'var(--progress)', null],
-    [districts, 'อำเภอที่พบกรณี', ICONS.pin, 'var(--clear-soft)', 'var(--clear)', null]
-  ];
-  document.getElementById('statStrip').innerHTML = stats.map(([n,l,ic,bg,fg,action])=>
-    `<div class="kpi-card card" ${action ? 'data-kpi-action="'+encodeURIComponent(JSON.stringify(action))+'"' : ''}>
-      <div class="kpi-icon" style="background:${bg};color:${fg};">${ic}</div>
-      <div><div class="kpi-num">${n}</div><div class="kpi-lbl">${l}</div></div>
-    </div>`
-  ).join('');
+  const clearOf = arr => arr.filter(r=>STATUS_BUCKET(r.status)==='clear').length;
+  const factoryRows = filtered.filter(r=>r.caseType==='factory');
+  const dumpingRows = filtered.filter(r=>r.caseType==='dumping');
+  const fClear = clearOf(factoryRows), fLegal = factory - fClear;
+  const dClear = clearOf(dumpingRows), dLegal = dumping - dClear;
+  const tClear = total - legalAction;
+  const P=['var(--primary-soft)','var(--primary)'], P2=['var(--primary-soft)','var(--primary-2)'],
+        A=['var(--alert-soft)','var(--alert)'], Y=['var(--progress-soft)','var(--progress)'],
+        G=['var(--clear-soft)','var(--clear)'];
+  const act = a => a ? ' data-kpi-action="'+encodeURIComponent(JSON.stringify(a))+'"' : '';
+  const ico = (ic,c) => `<div class="kpi-icon" style="background:${c[0]};color:${c[1]};">${ic}</div>`;
+  const main = (n,l,ic,c,a) => `<div class="kpi-card kpi-main card"${act(a)}>${ico(ic,c)}<div><div class="kpi-num">${n}</div><div class="kpi-lbl">${l}</div></div></div>`;
+  const sub = (n,l,ic,c) => `<div class="kpi-sub card" style="cursor:default">${ico(ic,c)}<div><div class="kpi-num">${n}</div><div class="kpi-lbl">${l}</div></div></div>`;
+  const mini = (n,l,ic,c) => `<div class="kpi-mini">${ico(ic,c)}<div><div class="kpi-num">${n}</div><div class="kpi-lbl">${l}</div></div></div>`;
+  document.getElementById('statStrip').innerHTML = `<div class="kpi-all">
+    <div class="kpi-total card">
+      ${main(total,'กรณีทั้งหมด',ICONS.total,P,null).replace('kpi-card kpi-main card','kpi-main')}
+      <div class="kpi-minis">
+        ${mini(factory,'โรงงาน/สถานประกอบการ',ICONS.factory,P2)}
+        ${mini(dumping,'ลักลอบทิ้งของเสีย',ICONS.dumping,A)}
+        ${mini(legalAction,'อยู่ระหว่าง/ดำเนินคดี',ICONS.legal,Y)}
+        ${mini(tClear,'ไม่ดำเนินคดี',ICONS.legal,G)}
+      </div>
+    </div>
+    <div class="kpi-eq">กรณีทั้งหมด = โรงงาน/สถานประกอบการ + ลักลอบทิ้งของเสีย</div>
+    <div class="kpi-group g-factory">
+      ${main(factory,'โรงงาน/สถานประกอบการ',ICONS.factory,P2,{kind:'registry'})}
+      <div class="kpi-subs">${sub(fLegal,'อยู่ระหว่าง/ดำเนินคดี',ICONS.legal,Y)}${sub(fClear,'ไม่ดำเนินคดี',ICONS.legal,G)}</div>
+    </div>
+    <div class="kpi-group g-dumping">
+      ${main(dumping,'ลักลอบทิ้งของเสีย',ICONS.dumping,A,{caseType:'dumping'})}
+      <div class="kpi-subs">${sub(dLegal,'อยู่ระหว่าง/ดำเนินคดี',ICONS.legal,Y)}${sub(dClear,'ไม่ดำเนินคดี',ICONS.legal,G)}</div>
+    </div>
+  </div>`;
   document.querySelectorAll('#statStrip [data-kpi-action]').forEach(card=>{
     card.addEventListener('click', ()=>{
       const action = JSON.parse(decodeURIComponent(card.getAttribute('data-kpi-action')));
