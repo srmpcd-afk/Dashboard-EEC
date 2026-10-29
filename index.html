@@ -558,7 +558,9 @@
   .chart-factorytype{grid-area:factorytype;}
   .chart-dumparea{grid-area:dumparea;}
   .chart-box h3{white-space:normal !important;}
-  .factory-type-legend{display:none;}
+  .chart-box .factory-type-legend{display:none !important;}
+  .chart-canvas-tall{min-height:360px;}
+  .chart-canvas-wrap canvas{width:100% !important;}
   .chart-box{padding:18px 20px 20px;display:flex;flex-direction:column;}
   .chart-box .chead{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;}
   .chart-box .chead .ic{
@@ -2494,6 +2496,7 @@ function renderCharts(){
   const CHART_FONT = {family:"'Noto Sans Thai', sans-serif", size:11};
   const colors = statusColor();
   Chart.defaults.color = fontColor;
+  Chart.defaults.maintainAspectRatio = false;
   Chart.defaults.borderColor = 'rgba(120,130,125,0.15)';
 
   const wasteAll = tally(filtered.flatMap(r=>splitMulti(r.wasteType)));
@@ -2507,14 +2510,14 @@ function renderCharts(){
   const wasteDump = tally(filtered.filter(r=>r.caseType==='dumping').flatMap(r=>splitMulti(r.wasteType)));
   charts.waste = new Chart(document.getElementById('chartWaste'), {
     type:'bar',
-    data:{ labels: wasteTop.map(([k])=> k.length>28 ? k.slice(0,28)+'…' : k),
+    data:{ labels: wasteTop.map(([k])=> k.length>24 ? k.slice(0,24)+'…' : k),
       datasets:[
         {label:'โรงงานอุตสาหกรรม', data:wasteTop.map(([k])=>wasteFac[k]||0), backgroundColor:CASE_COLOR.factory, borderRadius:4, maxBarThickness:20, stack:'w'},
         {label:'ลักลอบทิ้ง', data:wasteTop.map(([k])=>wasteDump[k]||0), backgroundColor:CASE_COLOR.dumping, borderRadius:4, maxBarThickness:20, stack:'w'}] },
     options:{ indexAxis:'y', layout:{padding:{right:28}}, plugins:{ barTotals: wasteTop.map(([,v])=>v),
         legend:CASE_LEGEND(CHART_FONT),
         tooltip:{callbacks:{title:(items)=> wasteTop[items[0].dataIndex][0], footer:(items)=> 'รวม '+wasteTop[items[0].dataIndex][1]+' รายการ'}}},
-      scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false}}} },
+      scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT,autoSkip:false},grid:{display:false}}} },
     plugins:[barValuePlugin]
   });
 
@@ -2535,7 +2538,7 @@ function renderCharts(){
     options:{ indexAxis:'y', layout:{padding:{right:28}}, plugins:{ barTotals: amphoeTop.map(([,v])=>v),
         legend:CASE_LEGEND(CHART_FONT),
         tooltip:{callbacks:{footer:(items)=> 'รวม '+amphoeTop[items[0].dataIndex][1]+' กรณี'}}},
-      scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false}}} },
+      scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT,autoSkip:false},grid:{display:false}}} },
     plugins:[barValuePlugin]
   });
 
@@ -2558,7 +2561,7 @@ function renderCharts(){
       plugins:{ barTotals: provinceTop.map(([,v])=>v),
         legend:CASE_LEGEND(CHART_FONT),
         tooltip:{callbacks:{footer:(items)=> 'รวม '+provinceTop[items[0].dataIndex][1]+' กรณี'}} },
-      scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false}}} },
+      scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT,autoSkip:false},grid:{display:false}}} },
     plugins:[barValuePlugin]
   });
 
@@ -2589,11 +2592,20 @@ function renderCharts(){
     : 'ไม่มีข้อมูล';
   destroyChart('factorytype');
   const VBAR_FACTORY = ['#4F7BF7','#A78BFA','#F4B76B','#FFD84D','#34C3A0','#F07C8A','#7CC4F5','#9AA5B1'];
-  const vbarLabel = (k)=> k.length>16 ? k.slice(0,16)+'…' : k;
+  const vbarLabel = (k)=>{
+    const MAXL=14, MAXLINES=3, toks=String(k).split(/(?<=[\/ ])/), lines=[''];
+    toks.forEach(t=>{
+      while(t.length>MAXL){ if(lines[lines.length-1]) lines.push(''); lines[lines.length-1]=t.slice(0,MAXL); t=t.slice(MAXL); lines.push(''); }
+      if((lines[lines.length-1]+t).trim().length>MAXL) lines.push(t); else lines[lines.length-1]+=t;
+    });
+    const out=lines.map(x=>x.trim()).filter(Boolean);
+    if(out.length>MAXLINES){ out.length=MAXLINES; out[MAXLINES-1]=out[MAXLINES-1].slice(0,MAXL-1)+'…'; }
+    return out;
+  };
   const vbarScales = {x:{ticks:{font:{family:"'Noto Sans Thai', sans-serif", size:10}, autoSkip:false, maxRotation:0},grid:{display:false}}, y:{beginAtZero:true,ticks:{font:CHART_FONT, precision:0},grid:{color:'rgba(120,130,125,0.15)'},grace:'12%'}};
   charts.factorytype = new Chart(document.getElementById('chartFactoryType'), {
     type:'bar',
-    data:{ labels: factoryTypeTop.map(([k])=> vbarLabel(/^\d/.test(k)?'ลำดับ '+k:k)),
+    data:{ labels: factoryTypeTop.map(([k])=> vbarLabel(k)),
       datasets:[{data:factoryTypeTop.map(([,v])=>v), backgroundColor: factoryTypeTop.map((_,i)=>VBAR_FACTORY[i%VBAR_FACTORY.length]), borderRadius:6, maxBarThickness:70}] },
     options:{ layout:{padding:{top:20}}, plugins:{legend:{display:false},
         tooltip:{callbacks:{
