@@ -592,6 +592,15 @@
     display:flex;justify-content:space-between;align-items:center;
     padding:18px 18px 14px;flex-wrap:wrap;gap:10px;
   }
+  .table-pager{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 20px;border-top:1px solid var(--line);}
+  .table-pager:empty{display:none;}
+  .pager-info{font-size:12.5px;color:var(--ink-soft);}
+  .pager-btns{display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
+  .pager-btn{min-width:34px;height:34px;padding:0 10px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:var(--font-body);font-size:13px;cursor:pointer;transition:background .15s,border-color .15s;}
+  .pager-btn:hover:not(:disabled):not(.active){background:var(--surface-2);border-color:var(--primary);}
+  .pager-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;cursor:default;}
+  .pager-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .pager-gap{color:var(--ink-soft);padding:0 2px;}
   .table-search{
     padding:9px 12px;border-radius:var(--radius-sm);
     border:1px solid var(--line);background:var(--surface-2);
@@ -959,6 +968,7 @@
             <tbody id="tableBody"></tbody>
           </table>
         </div>
+        <div class="table-pager" id="tablePager"></div>
         <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet ทางด้านซ้ายเพื่อเริ่มใช้งาน</div>
       </div>
     </section>
@@ -2005,6 +2015,7 @@ function applyFilters(){
   renderStats();
   renderMap();
   renderCharts();
+  tablePage = 1;
   renderTable();
 }
 
@@ -2650,6 +2661,28 @@ function renderCharts(){
   }
 }
 
+const TABLE_PAGE_SIZE = 15;
+let tablePage = 1;
+
+function renderPager(total, pages){
+  const el = document.getElementById('tablePager');
+  if(total <= TABLE_PAGE_SIZE){ el.innerHTML = ''; return; }
+  const from = (tablePage-1)*TABLE_PAGE_SIZE + 1, to = Math.min(total, tablePage*TABLE_PAGE_SIZE);
+  const nums = [];
+  for(let p=1; p<=pages; p++){
+    if(p===1 || p===pages || Math.abs(p-tablePage)<=1) nums.push(p);
+    else if(nums[nums.length-1] !== '…') nums.push('…');
+  }
+  el.innerHTML =
+    `<div class="pager-info">แสดง ${from}–${to} จาก ${total} รายการ · หน้า ${tablePage}/${pages}</div>` +
+    `<div class="pager-btns">` +
+      `<button type="button" class="pager-btn" data-page="${tablePage-1}" ${tablePage===1?'disabled':''}>‹ ก่อนหน้า</button>` +
+      nums.map(p => p==='…' ? `<span class="pager-gap">…</span>`
+        : `<button type="button" class="pager-btn${p===tablePage?' active':''}" data-page="${p}">${p}</button>`).join('') +
+      `<button type="button" class="pager-btn" data-page="${tablePage+1}" ${tablePage===pages?'disabled':''}>ถัดไป ›</button>` +
+    `</div>`;
+}
+
 function renderTable(){
   const body = document.getElementById('tableBody');
   const empty = document.getElementById('emptyState');
@@ -2659,10 +2692,16 @@ function renderTable(){
       ? 'ยังไม่มีข้อมูล กรุณาเชื่อมต่อ Google Sheet ทางด้านซ้ายเพื่อเริ่มใช้งาน'
       : 'ไม่พบกรณีที่ตรงกับตัวกรองที่เลือก';
     empty.style.display = 'block';
+    document.getElementById('tablePager').innerHTML = '';
     return;
   }
   empty.style.display = 'none';
-  const sorted = filtered.slice().sort((a,b)=> (recordDay(b)||'').localeCompare(recordDay(a)||'') || String(b.timestamp).localeCompare(String(a.timestamp)));
+  const allSorted = filtered.slice().sort((a,b)=> (recordDay(b)||'').localeCompare(recordDay(a)||'') || String(b.timestamp).localeCompare(String(a.timestamp)));
+  const pages = Math.max(1, Math.ceil(allSorted.length / TABLE_PAGE_SIZE));
+  if(tablePage > pages) tablePage = pages;
+  if(tablePage < 1) tablePage = 1;
+  const sorted = allSorted.slice((tablePage-1)*TABLE_PAGE_SIZE, tablePage*TABLE_PAGE_SIZE);
+  renderPager(allSorted.length, pages);
   body.innerHTML = sorted.map((r, idx) => {
     const bucket = STATUS_BUCKET(r.status);
     const kind = r.recordKind === 'incident' ? 'incident' : 'registry';
@@ -2745,6 +2784,13 @@ document.getElementById('chipDateMode').addEventListener('click', e=>{
 document.getElementById('fDateFrom').addEventListener('change', applyFilters);
 document.getElementById('fDateTo').addEventListener('change', applyFilters);
 document.getElementById('tableSearch').addEventListener('input', applyFilters);
+document.getElementById('tablePager').addEventListener('click', (e)=>{
+  const b = e.target.closest('.pager-btn'); if(!b || b.disabled) return;
+  tablePage = Number(b.dataset.page);
+  renderTable();
+  const sec = document.querySelector('.table-card');
+  if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+});
 document.getElementById('wasteTopN').addEventListener('change', renderCharts);
 document.getElementById('amphoeTopN').addEventListener('change', renderCharts);
 document.getElementById('provinceTopN').addEventListener('change', renderCharts);
