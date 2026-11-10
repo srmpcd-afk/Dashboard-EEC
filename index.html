@@ -637,8 +637,19 @@
     box-shadow:0 6px 16px -8px color-mix(in srgb, var(--clear) 80%, transparent);
   }
   .btn-export:hover{filter:brightness(1.07);}
+  .drill-box{max-width:980px;max-height:86vh;display:flex;flex-direction:column;}
+  .drill-head{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;margin-bottom:10px;}
+  .drill-head h3{margin:0;font-size:16px;line-height:1.35;}
+  .drill-head .sub{font-size:12.5px;opacity:.7;margin-top:2px;}
+  .drill-x{background:none;border:none;color:inherit;font-size:22px;line-height:1;cursor:pointer;opacity:.7;padding:0 4px;}
+  .drill-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px;}
+  .drill-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .drill-tbl th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:8px 10px;white-space:nowrap;border-bottom:1px solid var(--line);}
+  .drill-tbl td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .drill-tbl tr:last-child td{border-bottom:none;}
   .exp-overlay{position:fixed;inset:0;background:rgba(10,20,35,.55);z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;}
   .exp-overlay.show{display:flex;}
+  .exp-box.drill-box{max-width:980px;}
   .exp-box{background:var(--surface);color:var(--text, inherit);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;max-width:400px;box-shadow:0 20px 50px rgba(0,0,0,.35);}
   .exp-box h3{margin:0 0 4px;font-size:16px;}
   .exp-box p.sub{margin:0 0 14px;font-size:12.5px;opacity:.7;}
@@ -729,6 +740,10 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 </head>
 <body data-theme="light">
+<div class="exp-overlay" id="drillModal"><div class="exp-box drill-box" role="dialog" aria-modal="true">
+  <div class="drill-head"><div><h3 id="drillTitle"></h3><div class="sub" id="drillSub"></div></div><button type="button" class="drill-x" id="drillClose" aria-label="ปิด">×</button></div>
+  <div class="drill-scroll"><table class="drill-tbl"><thead><tr><th>วันที่</th><th>ประเภท</th><th>ชื่อกรณี / โรงงาน</th><th>พื้นที่</th><th>ประเภทของเสีย</th><th>สถานะคดี</th><th>หน่วยงาน</th></tr></thead><tbody id="drillBody"></tbody></table></div>
+</div></div>
       <div class="exp-overlay" id="exportChoice">
         <div class="exp-box" role="dialog" aria-modal="true">
           <h3>เลือกรูปแบบไฟล์ที่จะนำออก</h3>
@@ -2592,6 +2607,57 @@ const CASE_LEGEND = (font)=>({display:true, position:'top', align:'end', labels:
     {text:'โรงงานอุตสาหกรรม', fontColor:chartTextColor(), fillStyle:CASE_COLOR.factory, strokeStyle:CASE_COLOR.factory, lineWidth:0},
     {text:'ลักลอบทิ้ง', fontColor:chartTextColor(), fillStyle:CASE_COLOR.dumping, strokeStyle:CASE_COLOR.dumping, lineWidth:0}]}});
 
+// ---------- คลิกที่แท่งกราฟเพื่อดูรายการข้อมูลของแท่งนั้น ----------
+function statusTokens(r){
+  const raw = String(r.status||'').trim() || STATUS_LABEL.clear;
+  const seen = new Set();
+  raw.split(/[,，;；\n]+/).forEach(t=>{ t=t.replace(/\s+/g,' ').trim(); if(t) seen.add(t); });
+  return Array.from(seen);
+}
+function openDrill(title, recs){
+  const sorted = recs.slice().sort((a,b)=> (recordDay(b)||'').localeCompare(recordDay(a)||'') || String(b.timestamp).localeCompare(String(a.timestamp)));
+  document.getElementById('drillTitle').textContent = title;
+  document.getElementById('drillSub').textContent = 'ทั้งหมด '+sorted.length+' กรณี (ตามตัวกรองที่เลือกอยู่)';
+  document.getElementById('drillBody').innerHTML = sorted.map(r=>`<tr>
+    <td style="white-space:nowrap">${escapeHtml(recordDay(r) || String(r.timestamp).slice(0,10))}</td>
+    <td>${r.caseType==='dumping'?'ลักลอบทิ้ง':'โรงงาน'}</td>
+    <td>${escapeHtml(r.caseName||'-')}</td>
+    <td>${escapeHtml([r.tambon,r.amphoe,r.province].filter(Boolean).join(' / ')||'-')}</td>
+    <td>${escapeHtml(r.wasteType||'-')}</td>
+    <td>${escapeHtml(r.status||STATUS_LABEL.clear)}</td>
+    <td>${escapeHtml(r.agency||'-')}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center;opacity:.7">ไม่มีข้อมูล</td></tr>';
+  document.getElementById('drillModal').classList.add('show');
+}
+(function(){
+  const m = document.getElementById('drillModal');
+  const close = ()=> m.classList.remove('show');
+  m.addEventListener('click', e=>{ if(e.target===m) close(); });
+  document.getElementById('drillClose').addEventListener('click', close);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
+})();
+// สร้างตัวจัดการคลิก/เมาส์ชี้สำหรับกราฟแท่ง: getKeys() คืนคีย์ของแต่ละแท่งตามลำดับ, pred(r,key) ตรวจว่ากรณีอยู่ในแท่งนั้น
+function makeDrill(title, axis, getKeys, pred, byType){
+  return {
+    onClick:(evt, els, ch)=>{
+      let idx, ds = null;
+      if(els && els.length){ idx = els[0].index; ds = els[0].datasetIndex; }
+      else {
+        const a = ch.getElementsAtEventForMode(evt, 'index', {intersect:false, axis}, true);
+        if(!a.length) return; idx = a[0].index;
+      }
+      const key = getKeys()[idx]; if(key==null) return;
+      let recs = filtered.filter(r=>pred(r,key)), sub = '';
+      if(byType && ds!=null){
+        const t = ds===0 ? 'factory' : 'dumping';
+        recs = recs.filter(r=>r.caseType===t);
+        sub = ds===0 ? ' (โรงงานอุตสาหกรรม)' : ' (ลักลอบทิ้ง)';
+      }
+      openDrill(title+': '+key+sub, recs);
+    },
+    onHover:(evt, els, ch)=>{ ch.canvas.style.cursor = (els && els.length) ? 'pointer' : 'default'; }
+  };
+}
+
 function renderCharts(){
   const fontColor = chartTextColor();
   const CHART_FONT = {family:"'Noto Sans Thai', sans-serif", size:11};
@@ -2615,7 +2681,7 @@ function renderCharts(){
       datasets:[
         {label:'โรงงานอุตสาหกรรม', data:wasteTop.map(([k])=>wasteFac[k]||0), backgroundColor:CASE_COLOR.factory, borderRadius:4, maxBarThickness:20, stack:'w'},
         {label:'ลักลอบทิ้ง', data:wasteTop.map(([k])=>wasteDump[k]||0), backgroundColor:CASE_COLOR.dumping, borderRadius:4, maxBarThickness:20, stack:'w'}] },
-    options:{ indexAxis:'y', layout:{padding:{right:28}}, plugins:{ barTotals: wasteTop.map(([,v])=>v),
+    options:{ ...(makeDrill('ประเภทของเสีย','y',()=>wasteTop.map(([k])=>k),(r,k)=>splitMulti(r.wasteType).includes(k),true)), indexAxis:'y', layout:{padding:{right:28}}, plugins:{ barTotals: wasteTop.map(([,v])=>v),
         legend:CASE_LEGEND(CHART_FONT),
         tooltip:{callbacks:{title:(items)=> wasteTop[items[0].dataIndex][0], footer:(items)=> 'รวม '+wasteTop[items[0].dataIndex][1]+' รายการ'}}},
       scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT,autoSkip:false},grid:{display:false}}} },
@@ -2636,7 +2702,7 @@ function renderCharts(){
       datasets:[
         {label:'โรงงานอุตสาหกรรม', data:amphoeTop.map(([k])=>amphoeFac[k]||0), backgroundColor:CASE_COLOR.factory, borderRadius:4, maxBarThickness:20, stack:'a'},
         {label:'ลักลอบทิ้ง', data:amphoeTop.map(([k])=>amphoeDump[k]||0), backgroundColor:CASE_COLOR.dumping, borderRadius:4, maxBarThickness:20, stack:'a'}] },
-    options:{ indexAxis:'y', layout:{padding:{right:28}}, plugins:{ barTotals: amphoeTop.map(([,v])=>v),
+    options:{ ...(makeDrill('อำเภอ','y',()=>amphoeTop.map(([k])=>k),(r,k)=>r.amphoe===k,true)), indexAxis:'y', layout:{padding:{right:28}}, plugins:{ barTotals: amphoeTop.map(([,v])=>v),
         legend:CASE_LEGEND(CHART_FONT),
         tooltip:{callbacks:{footer:(items)=> 'รวม '+amphoeTop[items[0].dataIndex][1]+' กรณี'}}},
       scales:{x:{stacked:true,ticks:{font:CHART_FONT},grid:{display:false},grace:'12%'}, y:{stacked:true,ticks:{font:CHART_FONT,autoSkip:false},grid:{display:false}}} },
@@ -2658,7 +2724,7 @@ function renderCharts(){
         {label:'โรงงานอุตสาหกรรม', data:provinceTop.map(([k])=>provFac[k]||0), backgroundColor:CASE_COLOR.factory, borderRadius:4, maxBarThickness:26, stack:'p'},
         {label:'ลักลอบทิ้ง', data:provinceTop.map(([k])=>provDump[k]||0), backgroundColor:CASE_COLOR.dumping, borderRadius:4, maxBarThickness:26, stack:'p'}
       ] },
-    options:{ indexAxis:'y', layout:{padding:{right:28}},
+    options:{ ...(makeDrill('จังหวัด','y',()=>provinceTop.map(([k])=>k),(r,k)=>r.province===k,true)), indexAxis:'y', layout:{padding:{right:28}},
       plugins:{ barTotals: provinceTop.map(([,v])=>v),
         legend:CASE_LEGEND(CHART_FONT),
         tooltip:{callbacks:{footer:(items)=> 'รวม '+provinceTop[items[0].dataIndex][1]+' กรณี'}} },
@@ -2680,16 +2746,29 @@ function renderCharts(){
   destroyChart('factorytype');
   const VBAR_FACTORY = ['#4F7BF7','#A78BFA','#F4B76B','#FFD84D','#34C3A0','#F07C8A','#7CC4F5','#9AA5B1'];
   // สถานะคดี — กราฟแท่ง แสดงจำนวนกรณีของสถานะแต่ละประเภทตามที่บันทึกจริงในข้อมูล
-  const statusCounts = tally(filtered.map(r=>{ const s=String(r.status||'').trim(); return s || STATUS_LABEL.clear; }));
+  // แยกสถานะคดีทีละรายการ: ช่องสถานะเลือกได้หลายข้อ (คั่นด้วย , ; หรือขึ้นบรรทัดใหม่) จึงนับแต่ละสถานะแยกกัน
+  // กรณีหนึ่งที่มีหลายสถานะจะถูกนับในทุกสถานะนั้น (ตัดรายการซ้ำภายในกรณีเดียวกัน)
+  const statusCounts = (()=>{
+    const o = {};
+    filtered.forEach(r=>{
+      const raw = String(r.status||'').trim() || STATUS_LABEL.clear;
+      const seen = new Set();
+      raw.split(/[,，;；\n]+/).forEach(t=>{
+        t = t.replace(/\s+/g,' ').trim();
+        if(t && !seen.has(t)){ seen.add(t); o[t] = (o[t]||0)+1; }
+      });
+    });
+    return o;
+  })();
   const statusEntries = Object.entries(statusCounts).sort((a,b)=>{
     if(a[0]===STATUS_LABEL.clear) return -1;
     if(b[0]===STATUS_LABEL.clear) return 1;
     return b[1]-a[1];
   });
-  const statusTotal = statusEntries.reduce((s,[,v])=>s+v,0);
+  const statusTotal = filtered.length; // จำนวนกรณีทั้งหมด (1 กรณีอาจมีหลายสถานะ จึงรวมแท่งแล้วอาจเกินจำนวนกรณี)
   const VBAR_STATUS = ['#4F7BF7','#A78BFA','#F4B76B','#FFD84D','#F07C8A','#E879C6','#5DD6D6','#5FC77F','#7FAE41','#9A9A0A'];
   document.getElementById('statusChartSub').textContent = statusEntries.length
-    ? 'รวม '+statusTotal+' กรณี · '+statusEntries.length+' สถานะ'
+    ? 'จาก '+statusTotal+' กรณี · '+statusEntries.length+' สถานะ (1 กรณีอาจมีได้หลายสถานะ)'
     : 'ไม่มีข้อมูล';
   destroyChart('status');
   // ถ้าพื้นที่ต่อแท่งพอ ให้ตัดบรรทัดป้ายชื่อแนวนอน (อ่านง่าย) ไม่พอค่อยเอียง 45°
@@ -2709,7 +2788,7 @@ function renderCharts(){
     type:'bar',
     data:{ labels: statusLabels,
       datasets:[{data:statusEntries.map(([,v])=>v), backgroundColor: statusEntries.map((_,i)=>VBAR_STATUS[i%VBAR_STATUS.length]), borderRadius:6, maxBarThickness:70}] },
-    options:{ layout:{padding:{top:20}}, plugins:{legend:{display:false},
+    options:{ ...(makeDrill('สถานะคดี','x',()=>statusEntries.map(e=>e[0]),(r,k)=>statusTokens(r).includes(k),false)), layout:{padding:{top:20}}, plugins:{legend:{display:false},
         tooltip:{callbacks:{title:(items)=> statusEntries[items[0].dataIndex][0], label:(ctx)=> ctx.parsed.y+' กรณี ('+(statusTotal? Math.round(ctx.parsed.y/statusTotal*100):0)+'%)'}}},
       scales:{
         x:{ticks:{font:{family:"'Noto Sans Thai', sans-serif", size:10}, autoSkip:false, maxRotation:statusRotate?45:0, minRotation:statusRotate?45:0},grid:{display:false}},
@@ -2746,7 +2825,7 @@ function renderCharts(){
     type:'bar',
     data:{ labels: vFac.labels,
       datasets:[{data:factoryTypeTop.map(([,v])=>v), backgroundColor: factoryTypeTop.map((_,i)=>VBAR_FACTORY[i%VBAR_FACTORY.length]), borderRadius:6, maxBarThickness:70}] },
-    options:{ layout:{padding:{top:22}}, plugins:{legend:{display:false},
+    options:{ ...(makeDrill('ประเภทกิจการโรงงาน','x',()=>factoryTypeTop.map(([k])=>k),(r,k)=>r.caseType==='factory'&&splitMulti(r.locationType).includes(k),false)), layout:{padding:{top:22}}, plugins:{legend:{display:false},
         tooltip:{callbacks:{
           title:(items)=> factoryTypeTop[items[0].dataIndex][0],
           afterLabel:(ctx)=>{ const key = factoryTypeTop[ctx.dataIndex][0]; return FACTORY_TYPE_DESC[key] ? FACTORY_TYPE_DESC[key] : undefined; }
@@ -2769,7 +2848,7 @@ function renderCharts(){
     type:'bar',
     data:{ labels: vDump.labels,
       datasets:[{data:dumpTop.map(([,v])=>v), backgroundColor: dumpTop.map((_,i)=>VBAR_DUMP[i%VBAR_DUMP.length]), borderRadius:6, maxBarThickness:70}] },
-    options:{ layout:{padding:{top:22}}, plugins:{legend:{display:false},
+    options:{ ...(makeDrill('ประเภทพื้นที่ลักลอบทิ้ง','x',()=>dumpTop.map(([k])=>k),(r,k)=>r.caseType==='dumping'&&splitMulti(r.locationType).includes(k),false)), layout:{padding:{top:22}}, plugins:{legend:{display:false},
         tooltip:{callbacks:{title:(items)=> dumpTop[items[0].dataIndex][0]}}},
       scales:vDump.scales },
     plugins:[barValuePlugin]
