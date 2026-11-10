@@ -245,6 +245,32 @@
   .kpi-total .kpi-mini .kpi-num{font-size:20px;}
   .kpi-total .kpi-mini .kpi-lbl{font-size:12px;}
 
+
+  /* ---------- Filter panel toggle ---------- */
+  .filter-toggle-bar{
+    max-width:2200px;margin:22px auto 0;
+    padding:0 clamp(16px,3vw,32px);
+    display:flex;align-items:center;gap:10px;
+  }
+  .filter-toggle-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 16px;border-radius:99px;cursor:pointer;
+    border:1.5px solid var(--primary);background:var(--surface);color:var(--primary);
+    font-family:var(--font-body);font-size:13.5px;font-weight:600;
+    transition:background .15s,color .15s;
+  }
+  .filter-toggle-btn:hover{background:var(--primary);color:#fff;}
+  .filter-toggle-btn svg{width:16px;height:16px;flex-shrink:0;}
+  .filter-toggle-btn .ft-count{
+    display:none;min-width:20px;height:20px;padding:0 6px;border-radius:99px;
+    background:var(--alert);color:#fff;font-size:11.5px;line-height:20px;text-align:center;
+  }
+  .layout.filters-hidden .filter-toggle-btn .ft-count.has{display:inline-block;}
+  .layout{transition:grid-template-columns .25s ease;}
+  .layout.filters-hidden{grid-template-columns:minmax(0,1fr);}
+  .layout.filters-hidden > aside.filters{display:none;}
+  .layout + .filter-toggle-bar{display:none;}
+
   /* ---------- Layout ---------- */
   .layout{
     max-width:2200px;margin:26px auto 0;
@@ -535,14 +561,15 @@
     display:grid;
     grid-template-columns:repeat(12,minmax(0,1fr));
     grid-template-areas:
-      "province province province province province amphoe amphoe amphoe amphoe status status status"
+      "province province province province province province amphoe amphoe amphoe amphoe amphoe amphoe"
+      "status status status status status status status status status status status status"
       "factorytype factorytype factorytype factorytype dumparea dumparea dumparea dumparea waste waste waste waste";
     gap:16px;
   }
   @media (max-width:1180px){
     .charts-grid{
       grid-template-columns:repeat(2,minmax(0,1fr));
-      grid-template-areas:"province province" "amphoe status" "factorytype dumparea" "waste waste";
+      grid-template-areas:"province province" "amphoe amphoe" "status status" "factorytype dumparea" "waste waste";
     }
   }
   @media (max-width:760px){
@@ -601,13 +628,49 @@
   .pager-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;cursor:default;}
   .pager-btn:disabled{opacity:.4;cursor:not-allowed;}
   .pager-gap{color:var(--ink-soft);padding:0 2px;}
+  .table-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .btn-export{
+    display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+    padding:9px 14px;border-radius:var(--radius-sm);border:none;cursor:pointer;
+    background:linear-gradient(135deg, var(--clear), color-mix(in srgb, var(--clear) 70%, #fff));
+    color:#fff;font-family:var(--font-body);font-size:13px;font-weight:600;
+    box-shadow:0 6px 16px -8px color-mix(in srgb, var(--clear) 80%, transparent);
+  }
+  .btn-export:hover{filter:brightness(1.07);}
+  .exp-overlay{position:fixed;inset:0;background:rgba(10,20,35,.55);z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;}
+  .exp-overlay.show{display:flex;}
+  .exp-box{background:var(--surface);color:var(--text, inherit);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;max-width:400px;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+  .exp-box h3{margin:0 0 4px;font-size:16px;}
+  .exp-box p.sub{margin:0 0 14px;font-size:12.5px;opacity:.7;}
+  .exp-opt{display:block;width:100%;text-align:left;background:var(--surface-2);color:inherit;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;font:inherit;}
+  .exp-opt:hover{border-color:#16a34a;}
+  .exp-opt b{display:block;font-size:14px;margin-bottom:2px;}
+  .exp-opt span{font-size:12px;opacity:.7;}
+  .exp-cancel{display:block;margin:2px auto 0;background:none;border:none;color:inherit;opacity:.7;cursor:pointer;font:inherit;font-size:12.5px;}
+  .topnav-actions .btn-export{padding:7px 14px;border-radius:99px;font-size:12.5px;}
   .table-search{
     padding:9px 12px;border-radius:var(--radius-sm);
     border:1px solid var(--line);background:var(--surface-2);
     font-family:var(--font-body);font-size:13px;width:260px;max-width:100%;
   }
   table.case-table{width:100%;table-layout:auto;border-collapse:collapse;font-size:13px;}
-  table.case-table td{word-break:break-word;overflow-wrap:anywhere;}
+  table.case-table td{word-break:normal;overflow-wrap:break-word;line-height:1.5;}
+  table.case-table th:nth-child(1){min-width:104px;}
+  table.case-table th:nth-child(2){min-width:88px;}
+  table.case-table th:nth-child(3){min-width:140px;}
+  table.case-table th:nth-child(4){min-width:280px;width:30%;}
+  table.case-table th:nth-child(5){min-width:130px;}
+  table.case-table th:nth-child(6){min-width:170px;}
+  table.case-table th:nth-child(7){min-width:104px;}
+  table.case-table th:nth-child(8){min-width:150px;}
+  table.case-table th:nth-child(9){min-width:64px;}
+  table.case-table th:nth-child(10){min-width:108px;}
+  table.case-table td:nth-child(3), table.case-table td:nth-child(7){white-space:nowrap;}
+  .cell-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .loc-main{font-weight:500;color:var(--ink);}
+  .loc-sub{font-size:12px;color:var(--ink-soft);}
+  .cell-clamp a{color:var(--primary);text-decoration:none;font-weight:500;}
+  .cell-clamp a:hover{text-decoration:underline;}
   table.case-table th{
     text-align:left;font-size:11px;color:var(--ink-soft);font-weight:600;
     border-bottom:1px solid var(--line);padding:9px 10px;white-space:normal;
@@ -639,7 +702,7 @@
   }
   .kind-tag.registry{background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line);}
   .kind-tag.incident{background:var(--alert-soft);color:var(--alert);}
-  .table-scroll{overflow:visible;width:100%;}
+  .table-scroll{overflow-x:auto;width:100%;}
   .detail-row td{background:var(--surface-2);}
   .detail-grid{
     display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
@@ -666,6 +729,16 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 </head>
 <body data-theme="light">
+      <div class="exp-overlay" id="exportChoice">
+        <div class="exp-box" role="dialog" aria-modal="true">
+          <h3>เลือกรูปแบบไฟล์ที่จะนำออก</h3>
+          <p class="sub">ข้อมูลตามตัวกรองและคำค้นที่เลือกอยู่</p>
+          <button type="button" class="exp-opt" data-mode="raw"><b>ไฟล์ดิบ</b><span>หัวคอลัมน์และค่าเดิมจากชีตต้นฉบับ ไม่ผ่านการทำความสะอาด</span></button>
+          <button type="button" class="exp-opt" data-mode="clean"><b>ไฟล์ที่จัดระเบียบแล้ว</b><span>แบบเดิม: จัดกลุ่มประเภทของเสีย เพิ่มคอลัมน์ลักษณะ/กลุ่มสถานะ</span></button>
+          <button type="button" class="exp-cancel" data-mode="cancel">ยกเลิก</button>
+        </div>
+      </div>
+
 
 <nav class="topnav">
   <div class="topnav-inner">
@@ -677,6 +750,10 @@
       </div>
     </div>
     <div class="topnav-actions">
+      <button type="button" class="btn-export" id="exportExcelBtn" title="ส่งออกข้อมูลตามตัวกรองที่เลือกเป็นไฟล์ Excel">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      นำออก (Export) Excel
+      </button>
       <span class="live-badge" id="sourceIndicator"><span class="pulse"></span>ยังไม่มีข้อมูล</span>
       <span class="updated-text" id="lastUpdated">อัปเดตล่าสุด: —</span>
       <button class="icon-btn" id="themeToggle" title="สลับโหมดมืด/สว่าง">
@@ -693,8 +770,16 @@
 
 <div class="kpi-bento" id="statStrip"></div>
 
-<div class="layout">
-  <aside class="filters card">
+<div class="filter-toggle-bar">
+  <button type="button" class="filter-toggle-btn" id="filterToggleBtn" aria-expanded="true" aria-controls="filterAside">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+    <span id="filterToggleLabel">ซ่อนตัวกรองข้อมูล</span>
+    <span class="ft-count" id="filterActiveCount">0</span>
+  </button>
+</div>
+
+<div class="layout" id="mainLayout">
+  <aside class="filters card" id="filterAside">
     <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>ตัวกรองข้อมูล</h2>
 
     <div class="filter-group">
@@ -905,7 +990,7 @@
             </span>
             <div class="chead-text"><h3>สถานะคดี</h3><span class="chead-sub" id="statusChartSub"></span></div>
           </div>
-          <div class="chart-canvas-wrap chart-canvas-donut"><canvas id="chartStatus"></canvas></div>
+          <div class="chart-canvas-wrap chart-canvas-tall chart-canvas-vbar" style="min-height:360px;"><canvas id="chartStatus"></canvas></div>
         </div>
         <div class="chart-box card chart-factorytype">
           <div class="chead">
@@ -920,7 +1005,7 @@
               <option value="999">ทั้งหมด</option>
             </select>
           </div>
-          <div class="chart-canvas-wrap chart-canvas-tall chart-canvas-vbar"><canvas id="chartFactoryType"></canvas></div>
+          <div class="chart-canvas-wrap chart-canvas-tall chart-canvas-vbar" style="min-height:360px;"><canvas id="chartFactoryType"></canvas></div>
           <div class="factory-type-legend" id="factoryTypeLegend"></div>
         </div>
         <div class="chart-box card chart-dumparea">
@@ -930,7 +1015,7 @@
             </span>
             <div class="chead-text"><h3>ประเภทพื้นที่การลักลอบทิ้ง</h3><span class="chead-sub" id="dumpAreaChartSub"></span></div>
           </div>
-          <div class="chart-canvas-wrap chart-canvas-tall chart-canvas-vbar"><canvas id="chartDumpArea"></canvas></div>
+          <div class="chart-canvas-wrap chart-canvas-tall chart-canvas-vbar" style="min-height:360px;"><canvas id="chartDumpArea"></canvas></div>
         </div>
         <div class="chart-box card chart-waste">
           <div class="chead">
@@ -955,7 +1040,9 @@
       <div class="table-card card">
         <div class="table-head">
           <h2 id="tableTitle" style="font-family:var(--font-display);font-weight:600;font-size:17px;margin:0;">รายการกรณีทั้งหมด</h2>
-          <input type="text" class="table-search" id="tableSearch" placeholder="ค้นหาในตาราง...">
+          <div class="table-tools">
+            <input type="text" class="table-search" id="tableSearch" placeholder="ค้นหาในตาราง...">
+          </div>
         </div>
         <div class="table-scroll">
           <table class="case-table">
@@ -1389,6 +1476,7 @@ function photosHtml(r, size){
   return `<div class="photo-strip ${size||'md'}">${imgs}${more}</div>`;
 }
 
+let RAW_HEADERS = [];
 function transformRawRows(rows){
   const out = [];
   for(let i=1;i<rows.length;i++){
@@ -1419,6 +1507,7 @@ function transformRawRows(rows){
         photos: parsePhotos(r[32], r[33])
       };
     }
+    rec._raw = r;
     out.push(rec);
   }
   return out;
@@ -1477,7 +1566,8 @@ function transformStandardRows(data){
     legalDetail: row.legalDetail || '',
     agency: row.agency || '',
     note: row.note || '',
-    photos: parsePhotos(row.photos, row.photos2)
+    photos: parsePhotos(row.photos, row.photos2),
+    _raw: row._rawRow
   }));
 }
 
@@ -1587,6 +1677,7 @@ function cleanRecords(records){
 function rowsToRecords(rows){
   if(!rows || rows.length < 2) throw new Error('ไม่มีข้อมูลในไฟล์/ชีต');
   const headerJoined = rows[0].map(h=>String(h||'')).join('|');
+  RAW_HEADERS = rows[0].map(h=>h==null?'':h);
   let newData;
   if(headerJoined.indexOf('กรณี') !== -1 && headerJoined.indexOf('ลักลอบ') !== -1){
     newData = transformRawRows(rows);
@@ -1600,7 +1691,7 @@ function rowsToRecords(rows){
       );
     }
     const objs = rows.slice(1).map(r=>{
-      const o = {};
+      const o = {_rawRow: r};
       mappedKeys.forEach((k,i)=>{ if(k) o[k] = r[i]; });
       return o;
     });
@@ -2098,18 +2189,18 @@ function renderStats(){
       <div class="kpi-minis">
         ${mini(factory,'โรงงาน/สถานประกอบการ',ICONS.factory,P2)}
         ${mini(dumping,'ลักลอบทิ้งของเสีย',ICONS.dumping,A)}
-        ${mini(legalAction,'อยู่ระหว่าง/ดำเนินคดี',ICONS.legal,Y)}
+        ${mini(legalAction,'ดำเนินคดี',ICONS.legal,Y)}
         ${mini(tClear,'ไม่ดำเนินคดี',ICONS.legal,G)}
       </div>
     </div>
     <div class="kpi-eq">กรณีทั้งหมด = โรงงาน/สถานประกอบการ + ลักลอบทิ้งของเสีย</div>
     <div class="kpi-group g-factory">
       ${main(factory,'โรงงาน/สถานประกอบการ',ICONS.factory,P2,{kind:'registry'})}
-      <div class="kpi-subs">${sub(fLegal,'อยู่ระหว่าง/ดำเนินคดี',ICONS.legal,Y)}${sub(fClear,'ไม่ดำเนินคดี',ICONS.legal,G)}</div>
+      <div class="kpi-subs">${sub(fLegal,'ดำเนินคดี',ICONS.legal,Y)}${sub(fClear,'ไม่ดำเนินคดี',ICONS.legal,G)}</div>
     </div>
     <div class="kpi-group g-dumping">
       ${main(dumping,'ลักลอบทิ้งของเสีย',ICONS.dumping,A,{caseType:'dumping'})}
-      <div class="kpi-subs">${sub(dLegal,'อยู่ระหว่าง/ดำเนินคดี',ICONS.legal,Y)}${sub(dClear,'ไม่ดำเนินคดี',ICONS.legal,G)}</div>
+      <div class="kpi-subs">${sub(dLegal,'ดำเนินคดี',ICONS.legal,Y)}${sub(dClear,'ไม่ดำเนินคดี',ICONS.legal,G)}</div>
     </div>
   </div>`;
   document.querySelectorAll('#statStrip [data-kpi-action]').forEach(card=>{
@@ -2496,10 +2587,10 @@ const barValuePlugin = {
 };
 
 const CASE_COLOR = {factory:'#2B7DE9', dumping:'#F08A3C'};
-const CASE_LEGEND = (font)=>({display:true, position:'top', align:'end', labels:{font, boxWidth:12, boxHeight:12, borderRadius:3,
+const CASE_LEGEND = (font)=>({display:true, position:'top', align:'end', labels:{font, color:chartTextColor(), boxWidth:12, boxHeight:12, borderRadius:3,
   generateLabels:()=>[
-    {text:'โรงงานอุตสาหกรรม', fillStyle:CASE_COLOR.factory, strokeStyle:CASE_COLOR.factory, lineWidth:0},
-    {text:'ลักลอบทิ้ง', fillStyle:CASE_COLOR.dumping, strokeStyle:CASE_COLOR.dumping, lineWidth:0}]}});
+    {text:'โรงงานอุตสาหกรรม', fontColor:chartTextColor(), fillStyle:CASE_COLOR.factory, strokeStyle:CASE_COLOR.factory, lineWidth:0},
+    {text:'ลักลอบทิ้ง', fontColor:chartTextColor(), fillStyle:CASE_COLOR.dumping, strokeStyle:CASE_COLOR.dumping, lineWidth:0}]}});
 
 function renderCharts(){
   const fontColor = chartTextColor();
@@ -2575,20 +2666,6 @@ function renderCharts(){
     plugins:[barValuePlugin]
   });
 
-  const statusBuckets = {clear:0, progress:0, alert:0};
-  filtered.forEach(r=>{ statusBuckets[STATUS_BUCKET(r.status)]++; });
-  const statusTotal = statusBuckets.clear + statusBuckets.progress + statusBuckets.alert;
-  document.getElementById('statusChartSub').textContent = 'รวม '+statusTotal+' กรณี';
-  destroyChart('status');
-  charts.status = new Chart(document.getElementById('chartStatus'), {
-    type:'doughnut',
-    data:{ labels:[STATUS_LABEL.clear, STATUS_LABEL.progress, STATUS_LABEL.alert],
-      datasets:[{data:[statusBuckets.clear, statusBuckets.progress, statusBuckets.alert],
-        backgroundColor:[colors.clear, colors.progress, colors.alert], borderWidth:0}] },
-    options:{ cutout:'68%', plugins:{legend:{position:'bottom', labels:{font:CHART_FONT, usePointStyle:true, padding:12}},
-      tooltip:{callbacks:{label:(ctx)=> ctx.label+': '+ctx.parsed+' ('+(statusTotal? Math.round(ctx.parsed/statusTotal*100):0)+'%)'}}} }
-  });
-
   // ประเภทกิจการโรงงานตาม พ.ร.บ.โรงงาน (ลำดับที่ตามบัญชีท้ายกฎกระทรวง) — นับเฉพาะกรณี "โรงงาน"
   // เพราะฟิลด์นี้ไม่มีความหมายสำหรับกรณี "ลักลอบทิ้งของเสีย" ซึ่งใช้ช่องข้อมูลเดียวกันเก็บลักษณะพื้นที่แทน
   // รองรับกรณีเลือกได้มากกว่า 1 ลำดับ (คั่นด้วยจุลภาค) โดยนับแยกแต่ละลำดับ
@@ -2602,27 +2679,79 @@ function renderCharts(){
     : 'ไม่มีข้อมูล';
   destroyChart('factorytype');
   const VBAR_FACTORY = ['#4F7BF7','#A78BFA','#F4B76B','#FFD84D','#34C3A0','#F07C8A','#7CC4F5','#9AA5B1'];
-  const vbarLabel = (k)=>{
-    const MAXL=14, MAXLINES=3, toks=String(k).split(/(?<=[\/ ])/), lines=[''];
-    toks.forEach(t=>{
-      while(t.length>MAXL){ if(lines[lines.length-1]) lines.push(''); lines[lines.length-1]=t.slice(0,MAXL); t=t.slice(MAXL); lines.push(''); }
+  // สถานะคดี — กราฟแท่ง แสดงจำนวนกรณีของสถานะแต่ละประเภทตามที่บันทึกจริงในข้อมูล
+  const statusCounts = tally(filtered.map(r=>{ const s=String(r.status||'').trim(); return s || STATUS_LABEL.clear; }));
+  const statusEntries = Object.entries(statusCounts).sort((a,b)=>{
+    if(a[0]===STATUS_LABEL.clear) return -1;
+    if(b[0]===STATUS_LABEL.clear) return 1;
+    return b[1]-a[1];
+  });
+  const statusTotal = statusEntries.reduce((s,[,v])=>s+v,0);
+  const VBAR_STATUS = ['#4F7BF7','#A78BFA','#F4B76B','#FFD84D','#F07C8A','#E879C6','#5DD6D6','#5FC77F','#7FAE41','#9A9A0A'];
+  document.getElementById('statusChartSub').textContent = statusEntries.length
+    ? 'รวม '+statusTotal+' กรณี · '+statusEntries.length+' สถานะ'
+    : 'ไม่มีข้อมูล';
+  destroyChart('status');
+  // ถ้าพื้นที่ต่อแท่งพอ ให้ตัดบรรทัดป้ายชื่อแนวนอน (อ่านง่าย) ไม่พอค่อยเอียง 45°
+  const statusCanvas = document.getElementById('chartStatus');
+  const slotW = ((statusCanvas.parentElement.clientWidth||900) - 60) / Math.max(1, statusEntries.length);
+  const statusRotate = slotW < 105;
+  const wrapStatus = (k)=>{
+    const MAXL = 18, lines = [''];
+    String(k).split(/(?<=\s)|(?=\()/).forEach(t=>{
+      while(t.length>MAXL){ if(lines[lines.length-1].trim()) lines.push(''); lines[lines.length-1]=t.slice(0,MAXL); t=t.slice(MAXL); lines.push(''); }
       if((lines[lines.length-1]+t).trim().length>MAXL) lines.push(t); else lines[lines.length-1]+=t;
     });
-    const out=lines.map(x=>x.trim()).filter(Boolean);
-    if(out.length>MAXLINES){ out.length=MAXLINES; out[MAXLINES-1]=out[MAXLINES-1].slice(0,MAXL-1)+'…'; }
-    return out;
+    return lines.map(x=>x.trim()).filter(Boolean);
   };
-  const vbarScales = {x:{ticks:{font:{family:"'Noto Sans Thai', sans-serif", size:10}, autoSkip:false, maxRotation:0},grid:{display:false}}, y:{beginAtZero:true,ticks:{font:CHART_FONT, precision:0},grid:{color:'rgba(120,130,125,0.15)'},grace:'12%'}};
+  const statusLabels = statusEntries.map(([k])=> statusRotate ? k : wrapStatus(k));
+  charts.status = new Chart(document.getElementById('chartStatus'), {
+    type:'bar',
+    data:{ labels: statusLabels,
+      datasets:[{data:statusEntries.map(([,v])=>v), backgroundColor: statusEntries.map((_,i)=>VBAR_STATUS[i%VBAR_STATUS.length]), borderRadius:6, maxBarThickness:70}] },
+    options:{ layout:{padding:{top:20}}, plugins:{legend:{display:false},
+        tooltip:{callbacks:{title:(items)=> statusEntries[items[0].dataIndex][0], label:(ctx)=> ctx.parsed.y+' กรณี ('+(statusTotal? Math.round(ctx.parsed.y/statusTotal*100):0)+'%)'}}},
+      scales:{
+        x:{ticks:{font:{family:"'Noto Sans Thai', sans-serif", size:10}, autoSkip:false, maxRotation:statusRotate?45:0, minRotation:statusRotate?45:0},grid:{display:false}},
+        y:{beginAtZero:true,ticks:{font:CHART_FONT, precision:0},grid:{color:'rgba(120,130,125,0.15)'},grace:'12%'}
+      } },
+    plugins:[barValuePlugin]
+  });
+
+  const hLabel = (k)=> String(k).length>26 ? String(k).slice(0,26)+'…' : String(k);
+  // กราฟแท่งตั้งแบบเดียวกับกราฟสถานะ: ป้ายชื่อเต็ม ตัดบรรทัดถ้าพื้นที่พอ ไม่พอค่อยเอียง 45°
+  const vbarPrep = (canvasId, keys)=>{
+    const cv = document.getElementById(canvasId);
+    const slotW = ((cv.parentElement.clientWidth||600) - 60) / Math.max(1, keys.length);
+    const rotate = slotW < 85;
+    const MAXL = Math.max(8, Math.floor(slotW/7));
+    const wrap = (k)=>{
+      const lines = [''];
+      String(k).split(/(?<=\s)|(?=\()/).forEach(t=>{
+        while(t.length>MAXL){ if(lines[lines.length-1].trim()) lines.push(''); lines[lines.length-1]=t.slice(0,MAXL); t=t.slice(MAXL); lines.push(''); }
+        if((lines[lines.length-1]+t).trim().length>MAXL) lines.push(t); else lines[lines.length-1]+=t;
+      });
+      return lines.map(x=>x.trim()).filter(Boolean);
+    };
+    return {
+      labels: keys.map(k=> rotate ? String(k) : wrap(k)),
+      scales:{
+        x:{ticks:{font:{family:"'Noto Sans Thai', sans-serif", size:10}, autoSkip:false, maxRotation:rotate?45:0, minRotation:rotate?45:0},grid:{display:false}},
+        y:{beginAtZero:true,ticks:{font:CHART_FONT, precision:0},grid:{color:'rgba(120,130,125,0.15)'},grace:'12%'}
+      }
+    };
+  };
+  const vFac = vbarPrep('chartFactoryType', factoryTypeTop.map(([k])=>k));
   charts.factorytype = new Chart(document.getElementById('chartFactoryType'), {
     type:'bar',
-    data:{ labels: factoryTypeTop.map(([k])=> vbarLabel(k)),
+    data:{ labels: vFac.labels,
       datasets:[{data:factoryTypeTop.map(([,v])=>v), backgroundColor: factoryTypeTop.map((_,i)=>VBAR_FACTORY[i%VBAR_FACTORY.length]), borderRadius:6, maxBarThickness:70}] },
-    options:{ layout:{padding:{top:20}}, plugins:{legend:{display:false},
+    options:{ layout:{padding:{top:22}}, plugins:{legend:{display:false},
         tooltip:{callbacks:{
           title:(items)=> factoryTypeTop[items[0].dataIndex][0],
           afterLabel:(ctx)=>{ const key = factoryTypeTop[ctx.dataIndex][0]; return FACTORY_TYPE_DESC[key] ? FACTORY_TYPE_DESC[key] : undefined; }
         }}},
-      scales:vbarScales },
+      scales:vFac.scales },
     plugins:[barValuePlugin]
   });
 
@@ -2635,13 +2764,14 @@ function renderCharts(){
     ? 'แสดง '+dumpTop.length+' จาก '+Object.keys(dumpAll).length+' ประเภท · กรณีลักลอบทิ้ง '+dumpRecords.length+' รายการ'
     : 'ไม่มีข้อมูล';
   destroyChart('dumparea');
+  const vDump = vbarPrep('chartDumpArea', dumpTop.map(([k])=>k));
   charts.dumparea = new Chart(document.getElementById('chartDumpArea'), {
     type:'bar',
-    data:{ labels: dumpTop.map(([k])=>vbarLabel(k)),
+    data:{ labels: vDump.labels,
       datasets:[{data:dumpTop.map(([,v])=>v), backgroundColor: dumpTop.map((_,i)=>VBAR_DUMP[i%VBAR_DUMP.length]), borderRadius:6, maxBarThickness:70}] },
-    options:{ layout:{padding:{top:20}}, plugins:{legend:{display:false},
+    options:{ layout:{padding:{top:22}}, plugins:{legend:{display:false},
         tooltip:{callbacks:{title:(items)=> dumpTop[items[0].dataIndex][0]}}},
-      scales:vbarScales },
+      scales:vDump.scales },
     plugins:[barValuePlugin]
   });
 
@@ -2712,11 +2842,11 @@ function renderTable(){
       <td>${escapeHtml(recordDay(r) || String(r.timestamp).slice(0,10))}</td>
       <td><span class="type-tag">${r.caseType==='dumping'?'ลักลอบทิ้ง':'โรงงาน'}</span></td>
       <td><span class="kind-tag ${kind}">${KIND_LABEL[r.recordKind]||'-'}</span></td>
-      <td>${escapeHtml(r.caseName||'-')}</td>
-      <td>${escapeHtml(r.tambon)} / ${escapeHtml(r.amphoe)}</td>
+      <td><div class="cell-clamp" title="${escapeHtml(r.caseName||'')}">${escapeHtml(r.caseName||'-')}</div></td>
+      <td><div class="loc-main">${escapeHtml(r.tambon||'-')}</div><div class="loc-sub">${escapeHtml(r.amphoe||'-')}</div></td>
       <td title="${escapeHtml(r.wasteType||'')}">${escapeHtml((r.wasteType||'-').slice(0,40))}${(r.wasteType||'').length>40?'…':''}</td>
       <td><span class="pill ${bucket}">${STATUS_LABEL[bucket]}</span></td>
-      <td>${escapeHtml(r.agency||'-')}</td>
+      <td><div class="cell-clamp" title="${escapeHtml(r.agency||'')}">${agencyHtml(r.agency)}</div></td>
       <td>${photosHtml(r,'sm')||'-'}</td>
       <td>
         <button type="button" class="btn-locate" data-locate="${idx}" ${r.lat==null||r.lng==null?'disabled':''}>
@@ -2784,6 +2914,75 @@ document.getElementById('chipDateMode').addEventListener('click', e=>{
 document.getElementById('fDateFrom').addEventListener('change', applyFilters);
 document.getElementById('fDateTo').addEventListener('change', applyFilters);
 document.getElementById('tableSearch').addEventListener('input', applyFilters);
+
+// แปลงลิงก์ยาวๆ ในช่องหน่วยงานเป็นคำว่า "ลิงก์" ที่กดเปิดได้ เพื่อไม่ให้ตารางเละ
+function agencyHtml(v){
+  const s = escapeHtml(v||'');
+  if(!s) return '-';
+  return s.replace(/https?:\/\/[^\s)]+/g, u=>'<a href="'+u+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">ลิงก์</a>');
+}
+
+// ---------- ส่งออกข้อมูลเป็นไฟล์ Excel (ตามตัวกรอง/คำค้นที่เลือกอยู่ ทุกหน้า) ----------
+function doExport(mode){
+  const sorted = filtered.slice().sort((a,b)=> (recordDay(b)||'').localeCompare(recordDay(a)||'') || String(b.timestamp).localeCompare(String(a.timestamp)));
+  const d = new Date();
+  const stamp = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(mode==='raw' && RAW_HEADERS.length && sorted.every(r=>Array.isArray(r._raw))){
+    // ไฟล์ดิบ: หัวคอลัมน์และค่าเดิมจากชีตต้นฉบับ ไม่ผ่านการทำความสะอาด
+    const ncol = RAW_HEADERS.length;
+    const aoa = [RAW_HEADERS].concat(sorted.map(r=>{ const row = r._raw.slice(0,Math.max(ncol,r._raw.length)); while(row.length<ncol) row.push(''); return row; }));
+    const wsr = XLSX.utils.aoa_to_sheet(aoa);
+    wsr['!cols'] = RAW_HEADERS.map((h,i)=>({wch: Math.min(40, Math.max(String(h).length+2, ...aoa.slice(1,201).map(r=>String(r[i]==null?'':r[i]).length+2)))}));
+    const wbr = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wbr, wsr, 'ข้อมูลดิบ');
+    XLSX.writeFile(wbr, 'ข้อมูลดิบ_EEC_'+stamp+'.xlsx');
+    return;
+  }
+  const rows = sorted
+    .map(r=>({
+      'วันที่เข้าตรวจสอบ': recordDay(r) || String(r.timestamp).slice(0,10),
+      'ประเภท': r.caseType==='dumping' ? 'ลักลอบทิ้ง' : 'โรงงาน',
+      'ลักษณะ': KIND_LABEL[r.recordKind] || '',
+      'ชื่อกรณี / โรงงาน': r.caseName || '',
+      'จังหวัด': r.province || '',
+      'อำเภอ': r.amphoe || '',
+      'ตำบล': r.tambon || '',
+      'หมู่ที่': r.moo || '',
+      'ลำดับที่โรงงาน / ประเภทพื้นที่': r.locationType || '',
+      'ประเภทของเสีย': r.wasteType || '',
+      'การดำเนินงาน': r.operation || '',
+      'สถานะคดี': r.status || STATUS_LABEL.clear,
+      'กลุ่มสถานะ': STATUS_BUCKET(r.status)==='clear' ? 'ไม่ดำเนินคดี' : 'ดำเนินคดี',
+      'รายละเอียดทางกฎหมาย': r.legalDetail || '',
+      'หน่วยงาน': r.agency || '',
+      'หมายเหตุ': r.note || '',
+      'ละติจูด': r.lat==null ? '' : r.lat,
+      'ลองจิจูด': r.lng==null ? '' : r.lng
+    }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const keys = Object.keys(rows[0]);
+  ws['!cols'] = keys.map(k=>({wch: Math.min(45, Math.max(k.length+2, ...rows.slice(0,200).map(r=>String(r[k]).length+2)))}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รายการกรณี');
+  XLSX.writeFile(wb, 'รายการกรณี_EEC_'+stamp+'.xlsx');
+}
+(function(){
+  const ov = document.getElementById('exportChoice');
+  const close = ()=> ov.classList.remove('show');
+  document.getElementById('exportExcelBtn').addEventListener('click', ()=>{
+    if(typeof XLSX === 'undefined'){ alert('ไลบรารีส่งออก Excel โหลดไม่สำเร็จ กรุณารีเฟรชหน้านี้แล้วลองใหม่'); return; }
+    if(!filtered.length){ alert('ไม่มีข้อมูลให้ส่งออก'); return; }
+    ov.classList.add('show');
+  });
+  ov.addEventListener('click', e=>{
+    if(e.target===ov){ close(); return; }
+    const b = e.target.closest('[data-mode]'); if(!b) return;
+    close();
+    if(b.dataset.mode==='raw' || b.dataset.mode==='clean') doExport(b.dataset.mode);
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
+})();
+
 document.getElementById('tablePager').addEventListener('click', (e)=>{
   const b = e.target.closest('.pager-btn'); if(!b || b.disabled) return;
   tablePage = Number(b.dataset.page);
@@ -2962,6 +3161,54 @@ document.getElementById('themeToggle').addEventListener('click', ()=>{
 // init
 rebuildFilterOptions();
 applyFilters();
+
+// ---------- เปิด/ปิดแผงตัวกรอง (กราฟและแผนที่ขยายตามอัตโนมัติ) ----------
+(function(){
+  const layout = document.getElementById('mainLayout');
+  const btn = document.getElementById('filterToggleBtn');
+  const lbl = document.getElementById('filterToggleLabel');
+  const badge = document.getElementById('filterActiveCount');
+  if(!layout || !btn) return;
+  function activeFilterCount(){
+    try{
+      let n = 0;
+      [typeof selectedProvinces!=='undefined'&&selectedProvinces, typeof selectedAmphoes!=='undefined'&&selectedAmphoes,
+       typeof selectedTambons!=='undefined'&&selectedTambons, typeof selectedAgencies!=='undefined'&&selectedAgencies]
+        .forEach(st=>{ if(st && st.size) n++; });
+      document.querySelectorAll('#filterAside select').forEach(el=>{ if(el.value) n++; });
+      const q = document.getElementById('fSearch'); if(q && q.value.trim()) n++;
+      document.querySelectorAll('#filterAside .chip.active').forEach(c=>{
+        const v = Object.values(c.dataset)[0];
+        if(v!=='all' && v!=='' && v!==undefined) n++;
+      });
+      return n;
+    }catch(e){ return 0; }
+  }
+  function refreshBadge(){
+    const n = activeFilterCount();
+    badge.textContent = n; badge.classList.toggle('has', n>0);
+  }
+  function resizeAll(){
+    try{ Object.values(charts).forEach(c=>{ if(c && c.resize) c.resize(); }); }catch(e){}
+    try{ LeafletMap.onContainerResize(); }catch(e){}
+  }
+  function setHidden(hidden, save){
+    layout.classList.toggle('filters-hidden', hidden);
+    btn.setAttribute('aria-expanded', String(!hidden));
+    lbl.textContent = hidden ? 'แสดงตัวกรองข้อมูล' : 'ซ่อนตัวกรองข้อมูล';
+    refreshBadge();
+    if(save){ try{ localStorage.setItem('filtersHidden', hidden?'1':'0'); }catch(e){} }
+    // รีไซส์หลังเลย์เอาต์เปลี่ยน เพื่อให้กราฟ/แผนที่เต็มพื้นที่ทันที
+    requestAnimationFrame(resizeAll);
+    setTimeout(resizeAll, 300);
+  }
+  btn.addEventListener('click', ()=> setHidden(!layout.classList.contains('filters-hidden'), true));
+  document.addEventListener('change', refreshBadge);
+  document.addEventListener('input', refreshBadge);
+  document.addEventListener('click', ()=> setTimeout(refreshBadge,50));
+  window.addEventListener('resize', ()=> requestAnimationFrame(resizeAll));
+  try{ if(localStorage.getItem('filtersHidden')==='1') setHidden(true,false); }catch(e){}
+})();
 </script>
 </body>
 </html>
