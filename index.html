@@ -2242,16 +2242,24 @@ function renderStats(){
   const total = filtered.length;
   const factory = filtered.filter(r=>r.caseType==='factory').length;
   const dumping = filtered.filter(r=>r.caseType==='dumping').length;
-  const legalAction = filtered.filter(r=>STATUS_BUCKET(r.status)!=='clear').length;
+  // จัดกลุ่มตามชื่อการ์ด จากคอลัมน์ "สถานะคดี" (เลือกได้หลายข้อ — แถวหนึ่งนับได้หลายการ์ด)
+  const stText = r => String(r.status||'');
+  const isLegal = r => { const t=stText(r).replace(/ไม่ดำเนินคดี/g,''); return ['กล่าวโทษ','ร้องทุกข์','บันทึกประจำวัน','แจ้งความ','ส่งฟ้อง','ฟ้อง','ดำเนินคดี'].some(k=>t.indexOf(k)!==-1); };
+  const legalAction = filtered.filter(isLegal).length;
   const districts = new Set(filtered.map(r=>r.amphoe).filter(Boolean)).size;
   const incidents = filtered.filter(r=>r.recordKind==='incident').length;
 
   const clearOf = arr => arr.filter(r=>STATUS_BUCKET(r.status)==='clear').length;
   const factoryRows = filtered.filter(r=>r.caseType==='factory');
   const dumpingRows = filtered.filter(r=>r.caseType==='dumping');
-  const fClear = clearOf(factoryRows), fLegal = factory - fClear;
-  const dClear = clearOf(dumpingRows), dLegal = dumping - dClear;
-  const tClear = total - legalAction;
+  const fLegal = factoryRows.filter(isLegal).length;
+  const dLegal = dumpingRows.filter(isLegal).length;
+  // นับจากคอลัมน์ "สถานะคดี" (เลือกได้หลายข้อ) ด้วยการค้นข้อความในค่าสถานะ
+  const isWaiting = r => { const t=String(r.status||''); return t.indexOf('รอการอัพเดต')!==-1 || t.indexOf('ร่วมตรวจ')!==-1 || t.indexOf('รวมตรวจ')!==-1; };
+  const isAdminOrWaiting = r => String(r.status||'').indexOf('ปกครอง')!==-1 || isWaiting(r);
+  const fAdmin = factoryRows.filter(isAdminOrWaiting).length;
+  const dWait = dumpingRows.filter(isWaiting).length;
+  const tAdmin = fAdmin + dWait;
   const P=['var(--primary-soft)','var(--primary)'], P2=['var(--primary-soft)','var(--primary-2)'],
         A=['var(--alert-soft)','var(--alert)'], Y=['var(--progress-soft)','var(--progress)'],
         G=['var(--clear-soft)','var(--clear)'];
@@ -2267,17 +2275,17 @@ function renderStats(){
         ${mini(factory,'โรงงาน/สถานประกอบการ',ICONS.factory,P2)}
         ${mini(dumping,'ลักลอบทิ้งของเสีย',ICONS.dumping,A)}
         ${mini(legalAction,'ดำเนินคดี',ICONS.legal,Y)}
-        ${mini(tClear,'คำสั่งทางปกครอง/<br>รอการอัพเดตสถานะ/<br>รวมตรวจกับหน่วยงานอื่น',ICONS.legal,G)}
+        ${mini(tAdmin,'คำสั่งทางปกครอง/<br>รอการอัพเดตสถานะ/<br>รวมตรวจกับหน่วยงานอื่น',ICONS.legal,G)}
       </div>
     </div>
     <div class="kpi-eq">กรณีทั้งหมด = โรงงาน/สถานประกอบการ + ลักลอบทิ้งของเสีย</div>
     <div class="kpi-group g-factory">
       ${main(factory,'โรงงาน/สถานประกอบการ',ICONS.factory,P2,{kind:'registry'})}
-      <div class="kpi-subs">${sub(fLegal,'ดำเนินคดี',ICONS.legal,Y)}${sub(fClear,'คำสั่งทางปกครอง/<br>รอการอัพเดตสถานะ/<br>รวมตรวจกับหน่วยงานอื่น',ICONS.legal,G)}</div>
+      <div class="kpi-subs">${sub(fLegal,'ดำเนินคดี',ICONS.legal,Y)}${sub(fAdmin,'คำสั่งทางปกครอง/<br>รอการอัพเดตสถานะ/<br>รวมตรวจกับหน่วยงานอื่น',ICONS.legal,G)}</div>
     </div>
     <div class="kpi-group g-dumping">
       ${main(dumping,'ลักลอบทิ้งของเสีย',ICONS.dumping,A,{caseType:'dumping'})}
-      <div class="kpi-subs">${sub(dLegal,'ดำเนินคดี',ICONS.legal,Y)}${sub(dClear,'รอการอัพเดตสถานะ/<br>รวมตรวจกับหน่วยงานอื่น',ICONS.legal,G)}</div>
+      <div class="kpi-subs">${sub(dLegal,'ดำเนินคดี',ICONS.legal,Y)}${sub(dWait,'รอการอัพเดตสถานะ/<br>รวมตรวจกับหน่วยงานอื่น',ICONS.legal,G)}</div>
     </div>
   </div>`;
   document.querySelectorAll('#statStrip [data-kpi-action]').forEach(card=>{
